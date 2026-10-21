@@ -578,81 +578,30 @@ def _only_override(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
     )
 
 
-def _command_bindings(node: ast.AST) -> list[str]:
-    """The entity command names a node binds by a def or an assignment."""
-    if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-        names = [node.name]
-    elif isinstance(node, ast.Assign | ast.AnnAssign | ast.AugAssign):
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        names = [
-            n.id if isinstance(n, ast.Name) else n.attr
-            for t in targets
-            for n in ast.walk(t)
-            if isinstance(n, ast.Name | ast.Attribute)
-        ]
-    else:
-        return []
-    return [n for n in names if n in ENTITY_COMMANDS]
-
-
-# Ways to bind an attribute under a name the AST does not show.
-DYNAMIC_CALLS = frozenset({"setattr", "delattr", "vars"})
-DYNAMIC_ATTRS = frozenset({"__dict__", "__setattr__", "__delattr__"})
-
-
-def dynamic_bindings() -> list[tuple[str, int, str]]:
-    """Each use in the component of a form that can bind a press unseen."""
-    found = []
-    for f in sorted(os.listdir(COMP)):
-        if not f.endswith(".py"):
-            continue
-        for node in ast.walk(ast.parse(read(COMP, f))):
-            form = None
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                if node.func.id in DYNAMIC_CALLS:
-                    form = f"{node.func.id}()"
-                elif node.func.id == "type" and len(node.args) == 3:
-                    form = "type() with a class body"
-            elif isinstance(node, ast.Attribute) and node.attr in DYNAMIC_ATTRS:
-                form = node.attr
-            if form:
-                found.append((f, getattr(node, "lineno", 0), form))
-    return found
-
-
 def entity_commands() -> list[tuple[str, str, bool]]:
-    """Each binding of an entity command in the component, and if it is checked.
+    """Each entity command method in a class body, and if it follows the convention.
 
-    Checked means a method in a class body, decorated by `override` at most, whose
-    first statement is the check. Any other binding is unchecked.
+    The convention: async, decorated by `override` at most, first statement the
+    check. The guarantee is tests/ha/test_actions.py, which presses every entity
+    the integration creates as an ordinary user.
     """
     found = []
     for f in sorted(os.listdir(COMP)):
         if not f.endswith(".py"):
             continue
         tree = ast.parse(read(COMP, f))
-        methods: set[ast.AST] = set()
         for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
             for fn in cls.body:
                 if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
                     continue
                 if fn.name not in ENTITY_COMMANDS:
                     continue
-                methods.add(fn)
                 checked = (
                     isinstance(fn, ast.AsyncFunctionDef)
                     and _only_override(fn)
                     and _starts_with_admin_check(fn)
                 )
                 found.append((f, f"{cls.name}.{fn.name}", checked))
-        for node in ast.walk(tree):
-            if node in methods:
-                continue
-            for name in _command_bindings(node):
-                line = getattr(node, "lineno", 0)
-                found.append(
-                    (f, f"{name} bound outside a method at line {line}", False)
-                )
     return found
 
 
@@ -1040,11 +989,6 @@ def main() -> int:
     check(bool(commands), "no button press found to check for the administrator check")
     for f, method, checked in commands:
         check(checked, f"{f} {method} does not start with the administrator check")
-    for f, line, form in dynamic_bindings():
-        check(
-            False,
-            f"{f}:{line} uses {form}, which can bind a press the validator cannot read",
-        )
 
     # ---------------------------------------------- development-host refusal
     for _key in ("documentation", "issue_tracker"):
