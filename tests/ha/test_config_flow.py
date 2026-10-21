@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import aiohttp
 import pytest
 from homeassistant.config_entries import SOURCE_USER
@@ -16,6 +18,16 @@ from tests.pure import recorded
 from .conftest import INSTANCE_ID, KEY, URL, Api
 
 USER_INPUT = {CONF_URL: f"{URL}/api/", CONF_API_KEY: KEY, CONF_VERIFY_SSL: True}
+
+
+def _suggested(result: Any) -> dict[str, Any]:
+    """The values a form sends back to the browser to prefill its fields."""
+    return {
+        str(key): key.description["suggested_value"]
+        for key in result["data_schema"].schema
+        if isinstance(getattr(key, "description", None), dict)
+        and "suggested_value" in key.description
+    }
 
 
 def _no_commands(api: Api) -> None:
@@ -79,8 +91,9 @@ async def test_errors_then_recovery(
     )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": error}
-    # The key never goes back to the browser.
-    assert KEY not in str(result["data_schema"].schema)
+    # The key never goes back to the browser; the address does.
+    assert _suggested(result)[CONF_URL] == USER_INPUT[CONF_URL]
+    assert CONF_API_KEY not in _suggested(result)
     assert KEY not in repr(result)
     api.answers = good
     api.install()
@@ -160,6 +173,8 @@ async def test_reconfigure_keeps_a_blank_key(
 ) -> None:
     result = await entry.start_reconfigure_flow(hass)
     assert result["step_id"] == "reconfigure"
+    assert _suggested(result)[CONF_URL] == URL
+    assert CONF_API_KEY not in _suggested(result)
     assert KEY not in repr(result)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_URL: f"{URL}/", CONF_VERIFY_SSL: False}
@@ -175,7 +190,11 @@ async def test_reconfigure_with_a_new_key_and_an_error_first(
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {CONF_URL: "ftp://proxy.example.com", CONF_API_KEY: "new", CONF_VERIFY_SSL: True},
+        {
+            CONF_URL: "ftp://proxy.example.com",
+            CONF_API_KEY: "new",
+            CONF_VERIFY_SSL: True,
+        },
     )
     assert result["errors"] == {"base": "invalid_url"}
     result = await hass.config_entries.flow.async_configure(
