@@ -199,15 +199,21 @@ def _concrete_entity_classes() -> set[type[Entity]]:
     return {c for c in found if not any(o is not c and issubclass(o, c) for o in found)}
 
 
+@pytest.mark.parametrize("group", ["system-users", "system-read-only"])
 async def test_every_action_refuses_an_ordinary_user(
-    hass: HomeAssistant, api: Api, loaded: MockConfigEntry, users: tuple[User, User]
+    hass: HomeAssistant,
+    api: Api,
+    loaded: MockConfigEntry,
+    users: tuple[User, User],
+    group: str,
 ) -> None:
     """Every entity's domain actions and every integration action refuse a non-admin.
 
     Nothing but a read reaches the control plane, and every concrete entity class
     the platforms define is among the entities created.
     """
-    _, user = users
+    user = await hass.auth.async_create_user("Ordinary", group_ids=[group])
+    assert not user.is_admin
     context = Context(user_id=user.id)
     entities = [
         e for p in async_get_platforms(hass, DOMAIN) for e in p.entities.values()
@@ -235,3 +241,72 @@ async def test_every_action_refuses_an_ordinary_user(
                 domain, action, data, blocking=True, context=context
             )
     assert not [c for c in api.mocker.mock_calls if c[0] != "GET"]
+
+
+async def test_a_renew_button_added_later_refuses_an_ordinary_user(
+    hass: HomeAssistant, api: Api, entry: MockConfigEntry, users: tuple[User, User]
+) -> None:
+    _, user = users
+    api.edit("/api/certificates", lambda d: [dict(c, managed=False) for c in d])
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    api.edit("/api/certificates", lambda d: [dict(c, managed=True) for c in d])
+    await entry.runtime_data.certificates.async_refresh()
+    await hass.async_block_till_done()
+    renew = _button(hass, f"{INSTANCE_ID}_certificate_{CERT['id']}_renew")
+    with pytest.raises(Unauthorized):
+        await _press(hass, renew, Context(user_id=user.id))
+    assert not [c for c in api.mocker.mock_calls if c[0] != "GET"]
+
+
+async def test_the_client_writes_only_for_an_administrator_or_no_user(
+    hass: HomeAssistant, api: Api, loaded: MockConfigEntry, users: tuple[User, User]
+) -> None:
+    """The client's own check, whatever entry point reaches it."""
+    owner, user = users
+    reader = await hass.auth.async_create_user("Reader", group_ids=["system-read-only"])
+    client = loaded.runtime_data.client
+    refused: list[object] = [
+        Context(user_id=user.id),
+        Context(user_id=reader.id),
+        Context(user_id="gone"),
+        None,
+        object(),
+    ]
+    for caller in refused:
+        with pytest.raises(Unauthorized):
+            await client.reload(caller)
+        with pytest.raises(Unauthorized):
+            await client.renew_certificate(CERT["id"], caller)
+    assert not [c for c in api.mocker.mock_calls if c[0] != "GET"]
+    await client.reload(Context(user_id=owner.id))
+    await client.renew_certificate(CERT["id"], Context())
+    assert len(api.calls("POST", "/api/proxy/reload")) == 1
+    assert len(api.calls("POST", RENEW_PATH)) == 1
+
+
+async def test_each_write_is_authorized_with_its_calls_own_context(
+    hass: HomeAssistant,
+    api: Api,
+    loaded: MockConfigEntry,
+    users: tuple[User, User],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    owner, _ = users
+    client = loaded.runtime_data.client
+    authorize = client._authorize_write
+    assert authorize is not None
+    seen: list[object] = []
+
+    async def record(caller: object) -> None:
+        seen.append(caller)
+        await authorize(caller)
+
+    monkeypatch.setattr(client, "_authorize_write", record)
+    contexts = [Context(user_id=owner.id) for _ in range(4)]
+    await _reload(hass, loaded.entry_id, contexts[0])
+    await _renew(hass, loaded.entry_id, CERT["domain"], contexts[1])
+    await _press(hass, _button(hass, f"{INSTANCE_ID}_reload"), contexts[2])
+    renew = _button(hass, f"{INSTANCE_ID}_certificate_{CERT['id']}_renew")
+    await _press(hass, renew, contexts[3])
+    assert [id(c) for c in seen] == [id(c) for c in contexts]

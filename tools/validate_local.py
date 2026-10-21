@@ -545,7 +545,8 @@ ENTITY_COMMANDS = frozenset(
 def _starts_with_admin_check(fn: ast.AsyncFunctionDef) -> bool:
     """Whether the first statement after any docstring is the admin check.
 
-    The check is `await require_admin(self.hass, self._context)`.
+    The check is `await require_admin(self.hass, self._context)`; the context may
+    be bound there (`context := self._context`) for the write that follows.
     """
     body = fn.body
     if (
@@ -561,10 +562,11 @@ def _starts_with_admin_check(fn: ast.AsyncFunctionDef) -> bool:
     if not isinstance(awaited, ast.Await) or not isinstance(awaited.value, ast.Call):
         return False
     call = awaited.value
+    args = [a.value if isinstance(a, ast.NamedExpr) else a for a in call.args]
     return (
         isinstance(call.func, ast.Name)
         and call.func.id == "require_admin"
-        and [ast.unparse(a) for a in call.args] == ["self.hass", "self._context"]
+        and [ast.unparse(a) for a in args] == ["self.hass", "self._context"]
         and not call.keywords
     )
 

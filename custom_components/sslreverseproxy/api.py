@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
@@ -76,17 +76,40 @@ def _message(body: Any) -> str | None:
     return None
 
 
-class SslrpClient:
-    """One control plane, reached with one API key."""
+type WriteAuthorizer = Callable[[object], Awaitable[None]]
 
-    def __init__(self, session: aiohttp.ClientSession, url: str, api_key: str) -> None:
+
+class SslrpClient:
+    """One control plane, reached with one API key.
+
+    Every request leaves through `_request`. A write first awaits `authorize_write`
+    with its caller, which raises to refuse; without one the client only reads.
+    """
+
+    def __init__(
+        self,
+        session: aiohttp.ClientSession,
+        url: str,
+        api_key: str,
+        authorize_write: WriteAuthorizer | None = None,
+    ) -> None:
         self._session = session
         self.base_url = normalise_url(url)
         self._api_key = api_key
+        self._authorize_write = authorize_write
 
     async def _request(
-        self, method: str, path: str, *, json: Mapping[str, Any] | None = None
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Mapping[str, Any] | None = None,
+        caller: object = None,
     ) -> Any:
+        if method != "GET":
+            if self._authorize_write is None:
+                raise RuntimeError(f"{method} {path}: this client only reads")
+            await self._authorize_write(caller)
         try:
             async with self._session.request(
                 method,
@@ -156,14 +179,18 @@ class SslrpClient:
     async def get_certificates(self) -> dict[str, Certificate]:
         return _parse(Certificate.list_from_json, await self._get("/api/certificates"))
 
-    async def reload(self) -> ProxyStatus:
+    async def reload(self, caller: object) -> ProxyStatus:
         """Push the stored rules to Caddy. Returns the status after the push."""
-        body = await self._request("POST", "/api/proxy/reload", json={})
+        body = await self._request("POST", "/api/proxy/reload", json={}, caller=caller)
         return _parse(ProxyStatus.from_json, body)
 
-    async def renew_certificate(self, certificate_id: str) -> Certificate:
+    async def renew_certificate(
+        self, certificate_id: str, caller: object
+    ) -> Certificate:
         """Ask Caddy to reissue a served certificate. 409 says why it cannot."""
-        body = await self._request("POST", f"/api/certificates/{certificate_id}/renew")
+        body = await self._request(
+            "POST", f"/api/certificates/{certificate_id}/renew", caller=caller
+        )
         return _parse(Certificate.from_json, body)
 
 

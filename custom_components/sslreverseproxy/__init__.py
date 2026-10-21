@@ -34,6 +34,7 @@ from .coordinator import (
     instance_identifier,
     key_issue_id,
 )
+from .entity import write_authorizer
 from .models import Instance
 from .services import async_setup_services
 
@@ -89,7 +90,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: SslrpConfigEntry) -> boo
     session = async_get_clientsession(
         hass, verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL)
     )
-    client = SslrpClient(session, entry.data[CONF_URL], entry.data[CONF_API_KEY])
+    client = SslrpClient(
+        session,
+        entry.data[CONF_URL],
+        entry.data[CONF_API_KEY],
+        write_authorizer(hass),
+    )
     instance = await _async_instance(client)
     if instance.instance_id != entry.unique_id:
         # Another installation answers at this address; its rows are not this entry's.

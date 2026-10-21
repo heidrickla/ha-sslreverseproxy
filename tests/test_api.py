@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import asyncio
 import json
 from collections.abc import Awaitable, Callable
@@ -11,12 +12,18 @@ import aiohttp
 import pytest
 from aiohttp import web
 
-from tests.pure import load, recorded
+from tests.pure import COMPONENT, load, recorded
 
 api = load("api")
 
 KEY = "sslrp_test_key_not_a_real_one"
 DOTTED_KEY = "srp.Ab3dEf9h.s3cr3t-part-of-a-test-key-0123456789abcdef"
+CALLER = object()
+
+
+async def _allow(caller: object) -> None:
+    assert caller is CALLER
+
 
 type Routes = dict[
     tuple[str, str],
@@ -30,6 +37,7 @@ def _run(
     *,
     url_suffix: str = "",
     key: str = KEY,
+    authorize: Callable[[object], Awaitable[None]] | None = _allow,
 ) -> tuple[Any, list[web.Request]]:
     """Serve routes on a free port; return call(client)'s result and the requests."""
     seen: list[web.Request] = []
@@ -57,7 +65,7 @@ def _run(
         try:
             async with aiohttp.ClientSession() as session:
                 client = api.SslrpClient(
-                    session, f"http://127.0.0.1:{port}{url_suffix}", key
+                    session, f"http://127.0.0.1:{port}{url_suffix}", key, authorize
                 )
                 return await call(client)
         finally:
@@ -98,7 +106,7 @@ def test_reads_send_the_key_header_and_parse() -> None:
 
 def test_reload_posts_and_returns_status() -> None:
     routes: Routes = {("POST", "/api/proxy/reload"): recorded("reload.json")}
-    status, seen = _run(routes, lambda c: c.reload())
+    status, seen = _run(routes, lambda c: c.reload(CALLER))
     assert status.state == "running"
     assert seen[0].method == "POST"
 
@@ -108,7 +116,7 @@ def test_renew_posts_to_the_certificate() -> None:
     routes: Routes = {
         ("POST", f"/api/certificates/{cert_id}/renew"): recorded("renew.json")
     }
-    cert, seen = _run(routes, lambda c: c.renew_certificate(cert_id))
+    cert, seen = _run(routes, lambda c: c.renew_certificate(cert_id, CALLER))
     assert cert.domain == "api.example.com"
     assert seen[0].path == f"/api/certificates/{cert_id}/renew"
 
@@ -128,7 +136,8 @@ def test_refusals_map_to_their_errors(fixture: str, method: str, error: str) -> 
         "reload": ("POST", "/api/proxy/reload"),
     }[method]
     with pytest.raises(getattr(api, error)) as caught:
-        _run({path: recorded(fixture)}, lambda c: getattr(c, method)())
+        args = (CALLER,) if path[0] == "POST" else ()
+        _run({path: recorded(fixture)}, lambda c: getattr(c, method)(*args))
     assert KEY not in str(caught.value)
 
 
@@ -149,7 +158,7 @@ def test_a_renewal_refusal_carries_the_reason() -> None:
         ("POST", "/api/certificates/x/renew"): recorded("renew_refused.json")
     }
     with pytest.raises(api.SslrpRefusedError, match="already in progress"):
-        _run(routes, lambda c: c.renew_certificate("x"))
+        _run(routes, lambda c: c.renew_certificate("x", CALLER))
 
 
 def test_unknown_certificate_is_not_found() -> None:
@@ -157,7 +166,7 @@ def test_unknown_certificate_is_not_found() -> None:
         ("POST", "/api/certificates/x/renew"): recorded("renew_unknown.json")
     }
     with pytest.raises(api.SslrpNotFoundError):
-        _run(routes, lambda c: c.renew_certificate("x"))
+        _run(routes, lambda c: c.renew_certificate("x", CALLER))
 
 
 def test_a_server_error_is_a_response_error() -> None:
@@ -242,3 +251,107 @@ def test_normalise_url(url: str, expected: str) -> None:
 def test_normalise_url_refuses(url: str) -> None:
     with pytest.raises(ValueError):
         api.normalise_url(url)
+
+
+def test_a_write_is_authorized_before_it_is_sent() -> None:
+    order: list[str] = []
+
+    async def authorize(caller: object) -> None:
+        assert caller is CALLER
+        order.append("authorized")
+
+    async def reload(request: web.Request) -> web.StreamResponse:
+        order.append("sent")
+        return web.json_response(recorded("reload.json")[1])
+
+    _run(
+        {("POST", "/api/proxy/reload"): reload},
+        lambda c: c.reload(CALLER),
+        authorize=authorize,
+    )
+    assert order == ["authorized", "sent"]
+
+
+def test_a_refused_write_sends_nothing() -> None:
+    hits: list[str] = []
+
+    async def refuse(caller: object) -> None:
+        raise PermissionError("not this caller")
+
+    async def answer(request: web.Request) -> web.StreamResponse:
+        hits.append(request.path)
+        return web.json_response({})
+
+    routes: Routes = {
+        ("POST", "/api/proxy/reload"): answer,
+        ("POST", "/api/certificates/x/renew"): answer,
+    }
+    for write in (
+        lambda c: c.reload(CALLER),
+        lambda c: c.renew_certificate("x", CALLER),
+    ):
+        with pytest.raises(PermissionError):
+            _run(routes, write, authorize=refuse)
+    assert hits == []
+
+
+def test_a_client_without_an_authorizer_only_reads() -> None:
+    routes: Routes = {
+        ("GET", "/api/instance"): recorded("instance.json"),
+        ("POST", "/api/proxy/reload"): recorded("reload.json"),
+    }
+    _, seen = _run(routes, lambda c: c.get_instance(), authorize=None)
+    assert [r.method for r in seen] == ["GET"]
+    with pytest.raises(RuntimeError, match="only reads"):
+        _run(routes, lambda c: c.reload(CALLER), authorize=None)
+
+
+def _session_uses(tree: ast.AST) -> set[str]:
+    """The functions of a module that touch `self._session`."""
+    found: set[str] = set()
+    for fn in ast.walk(tree):
+        if isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+            for node in ast.walk(fn):
+                if isinstance(node, ast.Attribute) and node.attr == "_session":
+                    found.add(fn.name)
+    return found
+
+
+def test_every_request_leaves_through_one_method() -> None:
+    """Only `_request` sends; elsewhere a session is only handed to the client."""
+    client = ast.parse((COMPONENT / "api.py").read_text(encoding="utf-8"))
+    assert _session_uses(client) == {"__init__", "_request"}
+    for path in COMPONENT.glob("*.py"):
+        if path.name == "api.py":
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        assert not _session_uses(tree), path.name
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import | ast.ImportFrom):
+                names = [a.name for a in node.names] + [
+                    getattr(node, "module", "") or ""
+                ]
+                assert not any(n.split(".")[0] == "aiohttp" for n in names), path.name
+        sessions = {
+            t.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Assign)
+            and isinstance(node.value, ast.Call)
+            and getattr(node.value.func, "id", None) == "async_get_clientsession"
+            for t in node.targets
+            if isinstance(t, ast.Name)
+        }
+        handed = {
+            id(arg)
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "id", None) == "SslrpClient"
+            for arg in node.args
+        }
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Name)
+                and node.id in sessions
+                and isinstance(node.ctx, ast.Load)
+            ):
+                assert id(node) in handed, f"{path.name}:{node.lineno}"

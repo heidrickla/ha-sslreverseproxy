@@ -56,7 +56,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
     async def _reload(call: ServiceCall) -> None:
         runtime = _runtime(hass, call)
         try:
-            await runtime.client.reload()
+            await runtime.client.reload(call.context)
         except SslrpError as err:
             raise_command_error(err)
         await runtime.proxy.async_request_refresh()
@@ -74,7 +74,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 translation_placeholders={"certificate": name},
             )
         try:
-            await runtime.client.renew_certificate(match[0].id)
+            await runtime.client.renew_certificate(match[0].id, call.context)
         except SslrpError as err:
             raise_command_error(err)
         await runtime.certificates.async_request_refresh()

@@ -60,9 +60,9 @@ class ReloadButton(ProxyEntity, ButtonEntity):
 
     @override
     async def async_press(self) -> None:
-        await require_admin(self.hass, self._context)
+        await require_admin(self.hass, context := self._context)
         try:
-            await self.coordinator.client.reload()
+            await self.coordinator.client.reload(context)
         except SslrpError as err:
             raise_command_error(err)
         await self.coordinator.async_request_refresh()
@@ -85,9 +85,11 @@ class RenewButton(CertificateEntity, ButtonEntity):
 
     @override
     async def async_press(self) -> None:
-        await require_admin(self.hass, self._context)
+        await require_admin(self.hass, context := self._context)
         try:
-            await self.coordinator.client.renew_certificate(self.certificate_id)
+            await self.coordinator.client.renew_certificate(
+                self.certificate_id, context
+            )
         except SslrpError as err:
             raise_command_error(err)
         await self.coordinator.async_request_refresh()

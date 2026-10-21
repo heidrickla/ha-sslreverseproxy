@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from typing import NoReturn, override
 
 from homeassistant.config_entries import ConfigEntry
@@ -68,6 +68,21 @@ async def require_admin(hass: HomeAssistant, context: Context | None) -> None:
     user = await hass.auth.async_get_user(context.user_id)
     if user is None or not user.is_admin:
         raise Unauthorized(context=context)
+
+
+def write_authorizer(hass: HomeAssistant) -> Callable[[object], Awaitable[None]]:
+    """The client's check before every control plane write.
+
+    The caller must be the call's own Context: an administrator, or no user at
+    all (an automation or script). Anything else is refused.
+    """
+
+    async def authorize(caller: object) -> None:
+        if not isinstance(caller, Context):
+            raise Unauthorized()
+        await require_admin(hass, caller)
+
+    return authorize
 
 
 @callback
