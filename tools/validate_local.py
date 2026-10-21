@@ -600,6 +600,19 @@ def main() -> int:
         "strings.json and translations/en.json differ - copy strings.json over",
     )
 
+    def leaves(node: object, path: str) -> list[tuple[str, str]]:
+        if isinstance(node, dict):
+            return [x for k, v in node.items() for x in leaves(v, f"{path}.{k}")]
+        return [(path.lstrip("."), node)] if isinstance(node, str) else []
+
+    for where, text in leaves(strings, ""):
+        # hassfest: "the string should not contain URLs, please use description
+        # placeholders instead".
+        check(
+            "http://" not in text and "https://" not in text,
+            f"strings.json {where} contains a URL - use a description placeholder",
+        )
+
     # ---------------------------------------------------------- actions
     services_yaml = os.path.join(COMP, "services.yaml")
     check(os.path.isfile(services_yaml), "services.yaml is missing")

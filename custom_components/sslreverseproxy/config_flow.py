@@ -27,6 +27,9 @@ from .models import Instance
 _KEY = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
 )
+# hassfest refuses a URL inside a translation string.
+EXAMPLE_URL = {"example_url": "https://proxy.example.com"}
+
 _URL = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.URL)
 )
@@ -133,6 +136,7 @@ class SslrpConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 USER_SCHEMA, _without_key(user_input or {})
             ),
+            description_placeholders=EXAMPLE_URL,
             errors=errors,
         )
 
@@ -181,5 +185,6 @@ class SslrpConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 RECONFIGURE_SCHEMA, _without_key(user_input or entry.data)
             ),
+            description_placeholders=EXAMPLE_URL,
             errors=errors,
         )

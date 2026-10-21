@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.sslreverseproxy.config_flow import EXAMPLE_URL
 from custom_components.sslreverseproxy.const import DOMAIN
 from tests.pure import recorded
 
@@ -40,6 +41,7 @@ async def test_user_creates_the_entry(hass: HomeAssistant, api: Api) -> None:
         DOMAIN, context={"source": SOURCE_USER}
     )
     assert result["type"] is FlowResultType.FORM
+    assert result["description_placeholders"] == EXAMPLE_URL
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], USER_INPUT
     )
@@ -173,6 +175,7 @@ async def test_reconfigure_keeps_a_blank_key(
 ) -> None:
     result = await entry.start_reconfigure_flow(hass)
     assert result["step_id"] == "reconfigure"
+    assert result["description_placeholders"] == EXAMPLE_URL
     assert _suggested(result)[CONF_URL] == URL
     assert CONF_API_KEY not in _suggested(result)
     assert KEY not in repr(result)

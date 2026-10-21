@@ -10,7 +10,7 @@
           "verify_ssl": "Verify the TLS certificate"
         },
         "data_description": {
-          "url": "The control plane's address, for example https://proxy.example.com.",
+          "url": "The control plane's address, for example {example_url}.",
           "api_key": "Needs at least ServerRead and CertRead.",
           "verify_ssl": "Turn off only for a self-signed certificate."
         }
@@ -31,7 +31,7 @@
           "verify_ssl": "Verify the TLS certificate"
         },
         "data_description": {
-          "url": "The control plane's address, for example https://proxy.example.com.",
+          "url": "The control plane's address, for example {example_url}.",
           "api_key": "Needs at least ServerRead and CertRead.",
           "verify_ssl": "Turn off only for a self-signed certificate."
         }
