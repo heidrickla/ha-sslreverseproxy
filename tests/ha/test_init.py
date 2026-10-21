@@ -254,15 +254,43 @@ async def test_servers_and_certificates_come_and_go(
         id="00000000-0000-0000-0000-0000000000c1",
         domain="new.example.com",
     )
+    cert_device = (DOMAIN, f"{INSTANCE_ID}_certificate_{new_cert['id']}")
+    renew_id = f"{INSTANCE_ID}_certificate_{new_cert['id']}_renew"
+    status_id = f"{INSTANCE_ID}_certificate_{new_cert['id']}_certificate_status"
     api.edit("/api/certificates", lambda d: [*d, new_cert])
     await _tick(hass, freezer, CERTIFICATE_SCAN_INTERVAL)
     assert (
-        devices.async_get_device_by_identifier(
-            (DOMAIN, f"{INSTANCE_ID}_certificate_{new_cert['id']}"), loaded.entry_id
-        )
-        is not None
+        devices.async_get_device_by_identifier(cert_device, loaded.entry_id) is not None
     )
-    _entity(hass, "button", f"{INSTANCE_ID}_certificate_{new_cert['id']}_renew")
+    renew = _entity(hass, "button", renew_id)
+
+    def managed(value: bool) -> None:
+        api.edit(
+            "/api/certificates",
+            lambda d: [
+                dict(c, managed=value) if c["id"] == new_cert["id"] else c for c in d
+            ],
+        )
+
+    # Uploaded in Caddy's place: no renewal, so only the button goes.
+    managed(False)
+    await _tick(hass, freezer, CERTIFICATE_SCAN_INTERVAL)
+    assert er.async_get(hass).async_get(renew) is None
+    assert hass.states.get(renew) is None
+    status = _entity(hass, "sensor", status_id)
+    assert hass.states.get(status).state != STATE_UNAVAILABLE
+
+    managed(True)
+    await _tick(hass, freezer, CERTIFICATE_SCAN_INTERVAL)
+    renew = _entity(hass, "button", renew_id)
+    assert hass.states.get(renew) is not None
+
+    # Gone from the control plane: its device and every entity of it go.
+    api.edit("/api/certificates", lambda d: [c for c in d if c["id"] != new_cert["id"]])
+    await _tick(hass, freezer, CERTIFICATE_SCAN_INTERVAL)
+    assert devices.async_get_device_by_identifier(cert_device, loaded.entry_id) is None
+    assert er.async_get(hass).async_get(renew) is None
+    assert er.async_get(hass).async_get(status) is None
 
 
 async def test_remove_device_by_hand(

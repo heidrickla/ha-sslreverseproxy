@@ -16,6 +16,7 @@ from tests.pure import load, recorded
 api = load("api")
 
 KEY = "sslrp_test_key_not_a_real_one"
+DOTTED_KEY = "srp.Ab3dEf9h.s3cr3t-part-of-a-test-key-0123456789abcdef"
 
 type Routes = dict[
     tuple[str, str],
@@ -24,7 +25,11 @@ type Routes = dict[
 
 
 def _run(
-    routes: Routes, call: Callable[[Any], Awaitable[Any]], *, url_suffix: str = ""
+    routes: Routes,
+    call: Callable[[Any], Awaitable[Any]],
+    *,
+    url_suffix: str = "",
+    key: str = KEY,
 ) -> tuple[Any, list[web.Request]]:
     """Serve routes on a free port; return call(client)'s result and the requests."""
     seen: list[web.Request] = []
@@ -52,7 +57,7 @@ def _run(
         try:
             async with aiohttp.ClientSession() as session:
                 client = api.SslrpClient(
-                    session, f"http://127.0.0.1:{port}{url_suffix}", KEY
+                    session, f"http://127.0.0.1:{port}{url_suffix}", key
                 )
                 return await call(client)
         finally:
@@ -125,6 +130,18 @@ def test_refusals_map_to_their_errors(fixture: str, method: str, error: str) -> 
     with pytest.raises(getattr(api, error)) as caught:
         _run({path: recorded(fixture)}, lambda c: getattr(c, method)())
     assert KEY not in str(caught.value)
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 409, 500])
+@pytest.mark.parametrize("echoed", [DOTTED_KEY, DOTTED_KEY.rpartition(".")[2]])
+def test_server_text_never_carries_the_key(status: int, echoed: str) -> None:
+    routes: Routes = {
+        ("GET", "/api/instance"): (status, {"message": f"refused {echoed} here"})
+    }
+    with pytest.raises(api.SslrpError) as caught:
+        _run(routes, lambda c: c.get_instance(), key=DOTTED_KEY)
+    assert "refused [key] here" in str(caught.value)
+    assert DOTTED_KEY.rpartition(".")[2] not in str(caught.value)
 
 
 def test_a_renewal_refusal_carries_the_reason() -> None:

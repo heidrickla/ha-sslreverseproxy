@@ -111,6 +111,8 @@ class SslrpClient:
         if 200 <= status < 300:
             return body
         reason = _message(body)
+        if reason:
+            reason = self._redact(reason)
         detail = f"{method} {path} answered {status}" + (
             f": {reason}" if reason else ""
         )
@@ -123,6 +125,15 @@ class SslrpClient:
         if status == 409:
             raise SslrpRefusedError(reason or detail)
         raise SslrpResponseError(detail)
+
+    def _redact(self, text: str) -> str:
+        """Server text with the key and its secret part taken out."""
+        secret = self._api_key.rpartition(".")[2]
+        for value in (self._api_key, secret):
+            # A short value would also match ordinary words.
+            if len(value) >= 8:
+                text = text.replace(value, "[key]")
+        return text
 
     async def _get(self, path: str) -> Any:
         return await self._request("GET", path)

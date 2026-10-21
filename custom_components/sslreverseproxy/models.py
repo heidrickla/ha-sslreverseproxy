@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -101,8 +102,13 @@ class Instance:
     @classmethod
     def from_json(cls, data: Any) -> Instance:
         d = _obj(data, "instance")
+        try:
+            # The entry's identity: one installation, compared on every setup.
+            instance_id = str(uuid.UUID(_str(d, "instanceId")))
+        except ValueError as err:
+            raise ModelError("instanceId is not a UUID") from err
         return cls(
-            instance_id=_str(d, "instanceId").lower(),
+            instance_id=instance_id,
             api_version=_int(d, "apiVersion"),
             capabilities=_names(d, "capabilities"),
         )

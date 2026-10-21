@@ -528,6 +528,67 @@ def scan_published_tree() -> None:
     check(seen > 0, "the published-tree scan read no files, so it proved nothing")
 
 
+# Entity methods that act on the control plane when a user presses or sets them.
+ENTITY_COMMANDS = frozenset(
+    {
+        "async_press",
+        "async_turn_on",
+        "async_turn_off",
+        "async_toggle",
+        "async_select_option",
+        "async_set_native_value",
+        "async_set_value",
+    }
+)
+
+
+def _starts_with_admin_check(fn: ast.AsyncFunctionDef) -> bool:
+    """Whether the first statement after any docstring is the admin check.
+
+    The check is `await require_admin(self.hass, self._context)`.
+    """
+    body = fn.body
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        body = body[1:]
+    if not body or not isinstance(body[0], ast.Expr):
+        return False
+    awaited = body[0].value
+    if not isinstance(awaited, ast.Await) or not isinstance(awaited.value, ast.Call):
+        return False
+    call = awaited.value
+    return (
+        isinstance(call.func, ast.Name)
+        and call.func.id == "require_admin"
+        and [ast.unparse(a) for a in call.args] == ["self.hass", "self._context"]
+        and not call.keywords
+    )
+
+
+def entity_commands() -> list[tuple[str, str, bool]]:
+    """Each entity command method in the component, and if it starts with the check."""
+    found = []
+    for f in sorted(os.listdir(COMP)):
+        if not f.endswith(".py"):
+            continue
+        tree = ast.parse(read(COMP, f))
+        for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
+            for fn in cls.body:
+                if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+                    continue
+                if fn.name not in ENTITY_COMMANDS:
+                    continue
+                checked = isinstance(
+                    fn, ast.AsyncFunctionDef
+                ) and _starts_with_admin_check(fn)
+                found.append((f, f"{cls.name}.{fn.name}", checked))
+    return found
+
+
 def main() -> int:
     manifest = read_json(COMP, "manifest.json")
     const_src = read(COMP, "const.py")
@@ -908,12 +969,10 @@ def main() -> int:
         services_src.count("async_register_admin_service(") == len(service_consts),
         "every action registers with async_register_admin_service",
     )
-    button_src = read(COMP, "button.py")
-    check(
-        button_src.count("async def async_press(")
-        == button_src.count("await require_admin(self.hass, self._context)"),
-        "a button press does not check that the caller is an administrator",
-    )
+    commands = entity_commands()
+    check(bool(commands), "no button press found to check for the administrator check")
+    for f, method, checked in commands:
+        check(checked, f"{f} {method} does not start with the administrator check")
 
     # ---------------------------------------------- development-host refusal
     for _key in ("documentation", "issue_tracker"):

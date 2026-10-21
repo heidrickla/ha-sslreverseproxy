@@ -44,7 +44,7 @@ The Upstreams binary sensor is `unknown` until the control plane has probed the 
 | `sslreverseproxy.reload` | `config_entry_id` | Pushes the stored configuration to the proxy. Needs `ProxyReload`. |
 | `sslreverseproxy.renew_certificate` | `config_entry_id`, `certificate` (the domain, for example `app.example.com`) | Forces a renewal of an ACME-managed certificate. Needs `CertRenew`. |
 
-Both actions and both buttons run for administrators and for automations and scripts. A call or a press by a user who is not an administrator is refused with `Unauthorized`. A refusal from the control plane, such as a renewal already in progress, comes back with the control plane's message.
+Both actions and both buttons run for administrators and for automations and scripts. A call or a press by a user who is not an administrator is refused with `Unauthorized`. A refusal from the control plane, such as a renewal already in progress, comes back with the control plane's message, with the key taken out of it.
 
 ## Requirements
 
@@ -148,7 +148,7 @@ automation:
 
 - The control plane does not push changes, so Home Assistant sees a change within one poll: 60 s for the proxy and servers, 15 minutes for certificates.
 - The control plane does not announce itself on the network, so there is no discovery. Add it by address.
-- Renew covers certificates Caddy obtains over ACME. An uploaded certificate has no Renew button, and the action passes on the control plane's refusal.
+- Renew covers certificates Caddy obtains over ACME. An uploaded certificate has no Renew button, and the action passes on the control plane's refusal. A certificate's Renew button is removed when it stops being ACME-managed and added when it becomes managed.
 - Request, error and data counts are 24-hour aggregates kept by the control plane.
 
 ## Troubleshooting
@@ -175,7 +175,7 @@ Download diagnostics from the installation's device page for a report with the k
 
 - `custom_components/sslreverseproxy/api.py` and `models.py` import nothing from Home Assistant. `tests/test_api.py` and `tests/test_models.py` run them on a bare interpreter against `tests/fixtures/`, which are answers recorded from a control plane running its demo data, with documentation addresses only.
 - `tests/ha/` covers the Home Assistant layer against the same recorded answers. The GitHub Tests workflow runs both suites on Home Assistant 2026.10.2 (pytest-homeassistant-custom-component 0.13.373) on Python 3.14, measured into one coverage figure that fails under 95%, with mypy in strict mode.
-- `python tools/validate_local.py` is the offline half of the hassfest and HACS checks plus the cross-file checks: every user-facing exception has a translation key, every action registers as an administrator action, every button press checks the user, and the published tree carries no private address or listed development host name (`HA_DEV_HOST_NAMES`, comma separated).
+- `python tools/validate_local.py` is the offline half of the hassfest and HACS checks plus the cross-file checks: every user-facing exception has a translation key, every action registers as an administrator action, every button press checks the user before anything else, and the published tree carries no private address or listed development host name (`HA_DEV_HOST_NAMES`, comma separated).
 - `python tools/make_brand.py` regenerates the brand images and checks their sizes and transparency.
 
 ```bash

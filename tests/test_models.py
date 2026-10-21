@@ -19,6 +19,21 @@ def test_instance() -> None:
     assert instance.instance_id == instance.instance_id.lower()
 
 
+def test_instance_id_is_the_canonical_uuid() -> None:
+    data = copy.deepcopy(body("instance.json"))
+    expected = data["instanceId"]
+    data["instanceId"] = expected.upper()
+    assert models.Instance.from_json(data).instance_id == expected
+
+
+@pytest.mark.parametrize("value", ["", " ", "not-a-uuid", "f2ab8614"])
+def test_an_instance_id_that_is_not_a_uuid_is_refused(value: str) -> None:
+    data = copy.deepcopy(body("instance.json"))
+    data["instanceId"] = value
+    with pytest.raises(models.ModelError, match="instanceId"):
+        models.Instance.from_json(data)
+
+
 def test_whoami_home_assistant_key() -> None:
     who = models.WhoAmI.from_json(body("whoami_home_assistant.json"))
     assert who.permissions == {"ServerRead", "CertRead", "ProxyReload", "CertRenew"}
