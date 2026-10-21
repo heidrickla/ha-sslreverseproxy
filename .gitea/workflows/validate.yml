@@ -1,0 +1,142 @@
+name: Validate
+
+# The jobs that install Home Assistant are workflow_dispatch only, so an
+# ordinary push holds the shared runner for the lint job alone.
+# .github/workflows/tests.yml runs the same suites on every push.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint and structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 15
+
+      - name: Install ruff and PyYAML
+        timeout-minutes: 15
+        run: |
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet "ruff==0.15.21" "PyYAML==6.0.2"
+          python3 -m ruff --version
+
+      - name: Ruff
+        timeout-minutes: 15
+        run: |
+          python3 -m ruff check .
+          python3 -m ruff format --check .
+
+      - name: JSON is valid
+        timeout-minutes: 15
+        run: |
+          for f in custom_components/sslreverseproxy/*.json custom_components/sslreverseproxy/translations/*.json hacs.json; do
+            python3 -c "import json,sys; json.load(open(sys.argv[1],encoding='utf-8'))" "$f" || exit 1
+          done
+          echo "all JSON valid"
+
+      - name: Manifest sanity
+        timeout-minutes: 15
+        run: |
+          python3 - <<'PY'
+          import json
+          m = json.load(open("custom_components/sslreverseproxy/manifest.json", encoding="utf-8"))
+          missing = [k for k in ("domain", "name", "version", "documentation", "codeowners") if not m.get(k)]
+          assert not missing, f"manifest missing: {missing}"
+          assert m["domain"] == "sslreverseproxy", m["domain"]
+          assert "quality_scale" not in m, "the badge is core-only"
+          print("manifest ok:", m["domain"], m["version"])
+          PY
+
+      - name: Quality scale is complete
+        timeout-minutes: 15
+        run: |
+          python3 - <<'PY'
+          import yaml
+          rules = yaml.safe_load(open("custom_components/sslreverseproxy/quality_scale.yaml", encoding="utf-8"))["rules"]
+          todo = sorted(k for k, v in rules.items() if isinstance(v, dict) and v.get("status") == "todo")
+          for name, v in rules.items():
+              if isinstance(v, dict):
+                  assert v.get("status") in {"done", "todo", "exempt"}, name
+                  if v.get("status") != "done":
+                      assert str(v.get("comment", "")).strip(), f"{name}: needs a reason"
+              else:
+                  assert v == "done", name
+          assert not todo, f"todo: {todo}"
+          print(f"{len(rules)} rules, none todo")
+          PY
+
+  home-assistant:
+    name: Home Assistant layer
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 15
+
+      # Home Assistant 2026.10 needs Python 3.14.
+      - uses: actions/setup-python@v5
+        timeout-minutes: 15
+        with:
+          python-version: "3.14"
+
+      # The pure environment holds pytest and aiohttp only, so a Home
+      # Assistant import in api.py or models.py fails its run.
+      # pytest-homeassistant-custom-component 0.13.373 pins Home Assistant 2026.10.2.
+      - name: Install
+        timeout-minutes: 15
+        run: |
+          python -m venv .venv-pure
+          .venv-pure/bin/python -m pip install --quiet --upgrade pip
+          .venv-pure/bin/python -m pip install --quiet pytest "aiohttp==3.14.5"
+          python -m venv .venv
+          .venv/bin/python -m pip install --quiet --upgrade pip
+          .venv/bin/python -m pip install --quiet "mypy==1.18.2" "pytest-homeassistant-custom-component==0.13.373"
+
+      - name: Pure tests
+        timeout-minutes: 15
+        run: .venv-pure/bin/python -m pytest --durations=15 --junitxml=reports/junit-1.xml tests/test_models.py tests/test_api.py
+
+      # Both suites measure into one coverage file; the second run is the gate.
+      - name: Home Assistant layer tests
+        timeout-minutes: 15
+        run: |
+          .venv/bin/python -m pytest --durations=15 --junitxml=reports/junit-2.xml tests/test_models.py tests/test_api.py -p no:homeassistant --cov=custom_components/sslreverseproxy --cov-report=
+          .venv/bin/python -m pytest --durations=15 --junitxml=reports/junit-3.xml tests/ha --cov=custom_components/sslreverseproxy --cov-append --cov-report=term-missing --cov-fail-under=95
+
+      - name: mypy strict
+        timeout-minutes: 15
+        run: .venv/bin/python -m mypy custom_components/sslreverseproxy
+
+      # The host names come from a secret: naming them in the tree is the
+      # disclosure the scan exists to prevent.
+      - name: Offline HACS and hassfest checks
+        timeout-minutes: 15
+        env:
+          HA_DEV_HOST_NAMES: ${{ secrets.HA_DEV_HOST_NAMES }}
+        run: .venv/bin/python tools/validate_local.py
+
+      # The forge shows no job log, so each test's time and result is kept.
+      - name: test results
+        if: always()
+        timeout-minutes: 5
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
+        with:
+          name: test-results-${{ github.job }}
+          path: reports/
+          retention-days: 14
+
+  # hacs/action reads the repository through the GitHub API;
+  # .github/workflows/validate.yml runs it on GitHub.
+  hassfest:
+    name: hassfest
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        timeout-minutes: 15
+      - uses: home-assistant/actions/hassfest@master
+        timeout-minutes: 15

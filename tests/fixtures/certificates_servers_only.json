@@ -1,0 +1,9 @@
+{
+  "status": 403,
+  "body": {
+    "type": "https://tools.ietf.org/html/rfc9110#section-15.5.4",
+    "title": "Forbidden",
+    "status": 403,
+    "traceId": "00-61f5c0c9b8c13d7ff774a41086095326-953b79a34529b356-00"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "status": 404,
+  "body": {
+    "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+    "title": "Not Found",
+    "status": 404,
+    "traceId": "00-57f5bec6b360c81bbf38e96d2a1874b8-cd2e6728ef59fd14-00"
+  }
+}

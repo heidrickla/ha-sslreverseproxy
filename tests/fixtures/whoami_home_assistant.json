@@ -1,0 +1,25 @@
+{
+  "status": 200,
+  "body": {
+    "userId": "558c4a1b-a3b9-4f40-af09-dbb880aee1fa",
+    "name": "Bootstrap Admin",
+    "role": "Admin",
+    "permissions": [
+      "ServerRead",
+      "CertRead",
+      "ProxyReload",
+      "CertRenew"
+    ],
+    "key": {
+      "id": "ee4dbe24-e5a7-4a1d-bb69-97da69f400f0",
+      "name": "Home Assistant",
+      "expiresAt": "2026-11-20T04:49:25.6728251+00:00",
+      "scopes": [
+        "ServerRead",
+        "CertRead",
+        "ProxyReload",
+        "CertRenew"
+      ]
+    }
+  }
+}

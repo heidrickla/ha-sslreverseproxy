@@ -1,0 +1,31 @@
+name: Validate
+
+# HACS and hassfest must both be green before a release is tagged.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+# Gitea reads .github/workflows too, so every job here is gated to github.com.
+
+jobs:
+  hacs:
+    if: github.server_url == 'https://github.com'
+    name: HACS
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  hassfest:
+    if: github.server_url == 'https://github.com'
+    name: hassfest
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master

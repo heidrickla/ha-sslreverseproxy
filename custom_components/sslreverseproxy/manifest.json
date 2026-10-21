@@ -1,0 +1,17 @@
+{
+  "domain": "sslreverseproxy",
+  "name": "SSL Reverse Proxy",
+  "codeowners": [
+    "@heidrickla"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "repairs"
+  ],
+  "documentation": "https://github.com/heidrickla/ha-sslreverseproxy",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/heidrickla/ha-sslreverseproxy/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

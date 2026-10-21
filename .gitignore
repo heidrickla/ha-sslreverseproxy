@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/
+.DS_Store
+
+# Agent instruction files and per-checkout agent settings never ship.
+.claude/
+CLAUDE.md
+AGENTS.md
+CONTRIBUTING.md
+.cursorrules

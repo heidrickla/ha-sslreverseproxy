@@ -1,0 +1,114 @@
+rules:
+  # Bronze
+  action-setup:
+    status: done
+    comment: Both actions register in async_setup; a call while the entry is unloaded gets a translated refusal.
+  appropriate-polling:
+    status: done
+    comment: Status, servers, traffic and the key's record every 60 s; certificates every 15 min. Traffic is stored by the control plane as 24 h aggregates, so a faster poll adds nothing.
+  brands:
+    status: done
+    comment: custom_components/sslreverseproxy/brand/, served by Home Assistant 2026.3 and later.
+  common-modules: done
+  config-flow-test-coverage: done
+  config-flow: done
+  dependency-transparency:
+    status: exempt
+    comment: No requirements; the client is aiohttp, already in Home Assistant.
+  docs-actions: done
+  docs-conditions:
+    status: exempt
+    comment: No conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: No triggers.
+  entity-event-setup:
+    status: done
+    comment: Entities are CoordinatorEntity; the server and certificate trackers subscribe through entry.async_on_unload.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure:
+    status: done
+    comment: The flow reads /api/instance and /api/whoami and checks the API version and the key's ServerRead and CertRead before creating the entry. It never calls Reload or Renew.
+  test-before-setup:
+    status: done
+    comment: Setup reads /api/instance and both coordinators refresh first; unreachable raises ConfigEntryNotReady, a refused key ConfigEntryAuthFailed, another installation at the address ConfigEntryError.
+  unique-config-entry:
+    status: done
+    comment: The unique id is the installation's instance id from /api/instance, stable across address changes.
+
+  # Silver
+  action-exceptions:
+    status: done
+    comment: An unknown or unloaded entry and an unknown certificate raise ServiceValidationError; a refused or failed request raises a translated HomeAssistantError.
+  config-entry-unloading: done
+  docs-configuration-parameters:
+    status: exempt
+    comment: No options. Address, key and certificate check are entry data, changed by reconfigure.
+  docs-installation-parameters: done
+  entity-unavailable:
+    status: done
+    comment: A failed poll marks a coordinator's entities unavailable; a server or certificate the API stops listing has its device and entities removed on the next poll.
+  integration-owner: done
+  log-when-unavailable:
+    status: done
+    comment: DataUpdateCoordinator logs once when polling fails and once when it recovers.
+  parallel-updates: done
+  reauthentication-flow:
+    status: done
+    comment: A 401, a 403 or a key without ServerRead and CertRead starts reauth; the new key must reach the same instance id.
+  test-coverage:
+    status: done
+    comment: The Tests workflow runs both suites into one coverage file and fails under 95%.
+
+  # Gold
+  devices:
+    status: done
+    comment: One service device per installation, one device per proxied server and per certificate, each through the installation's device.
+  diagnostics:
+    status: done
+    comment: Redacts the key, the address, instance and row ids, names, hosts, domains and error text.
+  discovery-update-info:
+    status: exempt
+    comment: The control plane does not announce itself; there is no discovery to update from.
+  discovery:
+    status: exempt
+    comment: The control plane does not announce itself on mDNS, SSDP or DHCP.
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: done
+    comment: Servers and certificates the API starts listing get their entities on the next poll.
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default:
+    status: done
+    comment: Client errors, time to first byte and both data sizes are disabled by default.
+  entity-translations: done
+  exception-translations: done
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues:
+    status: done
+    comment: A fixable issue from seven days before the key expires; its flow takes the new key, checks it reaches the same instance and reloads the entry.
+  stale-devices:
+    status: done
+    comment: A server or certificate the API no longer lists has its device removed on the next poll; async_remove_config_entry_device allows the same by hand.
+
+  # Platinum
+  async-dependency: done
+  inject-websession:
+    status: done
+    comment: Home Assistant's shared session through async_get_clientsession with the entry's certificate check; the key is a per-request header.
+  strict-typing:
+    status: done
+    comment: pyproject.toml runs mypy strict with core's integration settings; CI runs it with Home Assistant installed.

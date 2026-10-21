@@ -1,0 +1,21 @@
+{
+  "status": 200,
+  "body": {
+    "userId": "558c4a1b-a3b9-4f40-af09-dbb880aee1fa",
+    "name": "Bootstrap Admin",
+    "role": "Admin",
+    "permissions": [
+      "ServerRead",
+      "CertRead"
+    ],
+    "key": {
+      "id": "85c40db5-d648-4356-8c18-58a145e70f0f",
+      "name": "Dashboard",
+      "expiresAt": "2026-10-28T04:49:25.7343622+00:00",
+      "scopes": [
+        "ServerRead",
+        "CertRead"
+      ]
+    }
+  }
+}

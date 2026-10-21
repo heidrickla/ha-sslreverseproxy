@@ -1,0 +1,242 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to SSL Reverse Proxy",
+        "description": "Issue a key in SSL Reverse Proxy under API keys with the Home Assistant preset. Read only also works, without the Reload and Renew buttons.",
+        "data": {
+          "url": "Address",
+          "api_key": "API key",
+          "verify_ssl": "Verify the TLS certificate"
+        },
+        "data_description": {
+          "url": "The control plane's address, for example https://proxy.example.com.",
+          "api_key": "Needs at least ServerRead and CertRead.",
+          "verify_ssl": "Turn off only for a self-signed certificate."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Replace the API key",
+        "description": "The key for {url} was refused. Issue a new key in SSL Reverse Proxy under API keys and enter it here.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure SSL Reverse Proxy",
+        "description": "Leave the key blank to keep the current one.",
+        "data": {
+          "url": "Address",
+          "api_key": "API key",
+          "verify_ssl": "Verify the TLS certificate"
+        },
+        "data_description": {
+          "url": "The control plane's address, for example https://proxy.example.com.",
+          "api_key": "Needs at least ServerRead and CertRead.",
+          "verify_ssl": "Turn off only for a self-signed certificate."
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Enter an http or https address with no user name, query or fragment.",
+      "cannot_connect": "Could not reach the control plane at that address.",
+      "invalid_auth": "The key was refused: unknown, revoked or expired.",
+      "missing_permissions": "The key lacks ServerRead or CertRead.",
+      "unsupported_version": "This control plane speaks an API version this integration does not.",
+      "unknown": "The control plane answered something unexpected."
+    },
+    "abort": {
+      "already_configured": "This control plane is already configured.",
+      "reauth_successful": "The new key works.",
+      "reconfigure_successful": "Saved.",
+      "wrong_instance": "That address answers as a different SSL Reverse Proxy installation."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "running": {
+        "name": "Proxy"
+      },
+      "upstream_problem": {
+        "name": "Upstreams"
+      },
+      "renewal_pending": {
+        "name": "Renewal pending"
+      }
+    },
+    "button": {
+      "reload": {
+        "name": "Reload"
+      },
+      "renew": {
+        "name": "Renew"
+      }
+    },
+    "sensor": {
+      "proxy_state": {
+        "name": "State",
+        "state": {
+          "unknown": "Unknown",
+          "stopped": "Stopped",
+          "running": "Running",
+          "faulted": "Faulted",
+          "unavailable": "Unavailable"
+        }
+      },
+      "active_rules": {
+        "name": "Active rules"
+      },
+      "requests": {
+        "name": "Requests (24 h)"
+      },
+      "in_flight": {
+        "name": "Requests in flight"
+      },
+      "server_errors": {
+        "name": "Server errors (24 h)"
+      },
+      "client_errors": {
+        "name": "Client errors (24 h)"
+      },
+      "response_time": {
+        "name": "Response time"
+      },
+      "response_time_p95": {
+        "name": "Response time p95"
+      },
+      "time_to_first_byte": {
+        "name": "Time to first byte"
+      },
+      "data_received": {
+        "name": "Data received (24 h)"
+      },
+      "data_sent": {
+        "name": "Data sent (24 h)"
+      },
+      "api_key_expiry": {
+        "name": "API key expires"
+      },
+      "server_status": {
+        "name": "Status",
+        "state": {
+          "unknown": "Unknown",
+          "active": "Active",
+          "inactive": "Inactive",
+          "error": "Error"
+        }
+      },
+      "upstreams_up": {
+        "name": "Upstreams up"
+      },
+      "upstreams": {
+        "name": "Upstreams"
+      },
+      "rules": {
+        "name": "Rules"
+      },
+      "certificate_expiry": {
+        "name": "Expires"
+      },
+      "certificate_status": {
+        "name": "Status",
+        "state": {
+          "unknown": "Unknown",
+          "valid": "Valid",
+          "expiring": "Expiring",
+          "expired": "Expired",
+          "issuing": "Issuing",
+          "failed": "Failed"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "auth_failed": {
+      "message": "The API key was refused: {error}"
+    },
+    "missing_permissions": {
+      "message": "The API key lacks a permission this needs: {error}"
+    },
+    "unreachable": {
+      "message": "The control plane did not answer: {error}"
+    },
+    "bad_answer": {
+      "message": "The control plane answered something unexpected: {error}"
+    },
+    "unsupported_version": {
+      "message": "The control plane speaks API version {version}; this integration speaks version 1."
+    },
+    "wrong_instance": {
+      "message": "The address answers as a different SSL Reverse Proxy installation. Reconfigure the entry with the right address."
+    },
+    "refused": {
+      "message": "SSL Reverse Proxy refused: {error}"
+    },
+    "command_failed": {
+      "message": "The request failed: {error}"
+    },
+    "entry_not_found": {
+      "message": "No SSL Reverse Proxy entry with id {entry_id}."
+    },
+    "not_loaded": {
+      "message": "{name} is not loaded."
+    },
+    "certificate_not_found": {
+      "message": "No certificate for {certificate}."
+    }
+  },
+  "issues": {
+    "api_key_expiring": {
+      "title": "The SSL Reverse Proxy API key for {entry} expires soon",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Replace the API key",
+            "description": "The key {key} for {entry} expires {expires}. Issue a new key in SSL Reverse Proxy under API keys, or rotate this one, and enter it here.",
+            "data": {
+              "api_key": "API key"
+            }
+          }
+        },
+        "error": {
+          "invalid_url": "Enter an http or https address with no user name, query or fragment.",
+          "cannot_connect": "Could not reach the control plane at that address.",
+          "invalid_auth": "The key was refused: unknown, revoked or expired.",
+          "missing_permissions": "The key lacks ServerRead or CertRead.",
+          "unsupported_version": "This control plane speaks an API version this integration does not.",
+          "unknown": "The control plane answered something unexpected.",
+          "wrong_instance": "The address now answers as a different SSL Reverse Proxy installation."
+        },
+        "abort": {
+          "entry_removed": "The entry was removed."
+        }
+      }
+    }
+  },
+  "services": {
+    "reload": {
+      "name": "Reload",
+      "description": "Pushes the stored rules to Caddy. Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Entry",
+          "description": "The SSL Reverse Proxy to reload."
+        }
+      }
+    },
+    "renew_certificate": {
+      "name": "Renew certificate",
+      "description": "Asks Caddy to reissue a certificate it serves. Administrators only.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Entry",
+          "description": "The SSL Reverse Proxy that serves the certificate."
+        },
+        "certificate": {
+          "name": "Certificate",
+          "description": "The certificate's domain."
+        }
+      }
+    }
+  }
+}

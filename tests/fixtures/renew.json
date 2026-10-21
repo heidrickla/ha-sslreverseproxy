@@ -1,0 +1,20 @@
+{
+  "status": 202,
+  "body": {
+    "id": "7748274f-ecc6-4b19-bc12-51d37e62ae4c",
+    "domain": "api.example.com",
+    "issuer": "Caddy Local Authority - ECC Intermediate",
+    "status": "Valid",
+    "daysRemaining": 0,
+    "issuedAt": "2026-10-21T04:49:26+00:00",
+    "expiresAt": "2026-10-21T16:49:26+00:00",
+    "serialNumber": "00CED57C87B951841E70DECA9DD614F0CC",
+    "algorithm": "ECDSA 256",
+    "source": "Manual",
+    "challenge": "Http",
+    "lastError": null,
+    "checkedAt": "2026-10-21T04:49:39.0434542+00:00",
+    "renewPending": true,
+    "managed": true
+  }
+}

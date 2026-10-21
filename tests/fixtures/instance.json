@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "body": {
+    "instanceId": "f2ab8614-01b3-4b55-ad02-9ec6eb4446f4",
+    "apiVersion": 1,
+    "capabilities": [
+      "scoped-api-keys",
+      "push-preview",
+      "backup",
+      "recent-requests",
+      "sign-in"
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "status": 200,
+  "body": {
+    "state": "Running",
+    "engine": "caddy",
+    "processId": 57024,
+    "startedAt": "2026-10-21T04:49:26.3320937+00:00",
+    "activeRuleCount": 5,
+    "message": null
+  }
+}

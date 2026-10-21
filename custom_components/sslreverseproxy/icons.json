@@ -1,0 +1,96 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "running": {
+        "default": "mdi:server-network",
+        "state": {
+          "off": "mdi:server-network-off"
+        }
+      },
+      "upstream_problem": {
+        "default": "mdi:lan-connect",
+        "state": {
+          "on": "mdi:lan-disconnect"
+        }
+      },
+      "renewal_pending": {
+        "default": "mdi:certificate-outline",
+        "state": {
+          "on": "mdi:timer-sand"
+        }
+      }
+    },
+    "button": {
+      "reload": {
+        "default": "mdi:reload"
+      },
+      "renew": {
+        "default": "mdi:certificate"
+      }
+    },
+    "sensor": {
+      "proxy_state": {
+        "default": "mdi:server-network"
+      },
+      "active_rules": {
+        "default": "mdi:routes"
+      },
+      "requests": {
+        "default": "mdi:swap-horizontal"
+      },
+      "in_flight": {
+        "default": "mdi:progress-clock"
+      },
+      "server_errors": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "client_errors": {
+        "default": "mdi:alert-outline"
+      },
+      "response_time": {
+        "default": "mdi:timer-outline"
+      },
+      "response_time_p95": {
+        "default": "mdi:timer-alert-outline"
+      },
+      "time_to_first_byte": {
+        "default": "mdi:timer-play-outline"
+      },
+      "data_received": {
+        "default": "mdi:download-network"
+      },
+      "data_sent": {
+        "default": "mdi:upload-network"
+      },
+      "api_key_expiry": {
+        "default": "mdi:key-chain"
+      },
+      "server_status": {
+        "default": "mdi:server"
+      },
+      "upstreams_up": {
+        "default": "mdi:lan-connect"
+      },
+      "upstreams": {
+        "default": "mdi:lan"
+      },
+      "rules": {
+        "default": "mdi:routes"
+      },
+      "certificate_expiry": {
+        "default": "mdi:certificate"
+      },
+      "certificate_status": {
+        "default": "mdi:shield-check-outline"
+      }
+    }
+  },
+  "services": {
+    "reload": {
+      "service": "mdi:reload"
+    },
+    "renew_certificate": {
+      "service": "mdi:certificate"
+    }
+  }
+}

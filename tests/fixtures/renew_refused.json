@@ -1,0 +1,6 @@
+{
+  "status": 409,
+  "body": {
+    "message": "A renewal of api.example.com is already in progress."
+  }
+}

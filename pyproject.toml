@@ -1,0 +1,55 @@
+[project]
+name = "ha-sslreverseproxy"
+version = "0.1.0"
+description = "Home Assistant integration for the SSLReverseProxy control plane."
+# Home Assistant 2026.x requires 3.14.
+requires-python = ">=3.14"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+extend-exclude = ["custom_components/sslreverseproxy/brand"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# The pure tests load the client and models by path, which puts imports after code.
+"tests/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+# Core's generated mypy.ini [mypy] block for a strict-typing integration
+# (2026.10.2), plus strict. python_version and platform are pinned so every
+# run resolves the same branches.
+[tool.mypy]
+python_version = "3.14"
+platform = "linux"
+strict = true
+local_partial_types = true
+no_implicit_optional = true
+strict_bytes = true
+warn_unreachable = true
+extra_checks = false
+enable_error_code = [
+    "deprecated",
+    "explicit-override",
+    "ignore-without-code",
+    "redundant-self",
+    "truthy-iterable",
+]
+disable_error_code = ["annotation-unchecked", "import-not-found", "import-untyped"]
+follow_imports = "normal"
+show_error_codes = true
+
+# mypy does not support strict per module; these relax the tests only.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+disallow_any_generics = false
+warn_return_any = false

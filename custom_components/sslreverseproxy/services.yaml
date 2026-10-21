@@ -1,0 +1,19 @@
+reload:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: sslreverseproxy
+renew_certificate:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: sslreverseproxy
+    certificate:
+      required: true
+      example: app.example.com
+      selector:
+        text:

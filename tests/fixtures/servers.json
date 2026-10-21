@@ -1,0 +1,38 @@
+{
+  "status": 200,
+  "body": [
+    {
+      "id": "11be842a-75f5-4223-88c7-ad12abc21111",
+      "name": "Internal Services",
+      "host": "192.0.2.20",
+      "os": "linux",
+      "ruleCount": 2,
+      "status": "Error",
+      "upstreamsUp": 1,
+      "upstreamsTotal": 2,
+      "statusCheckedAt": "2026-10-21T04:49:25.1600067+00:00"
+    },
+    {
+      "id": "1d4ba66f-29ed-4fec-8a4e-6ca040dedb57",
+      "name": "Web Applications",
+      "host": "192.0.2.10",
+      "os": "linux",
+      "ruleCount": 3,
+      "status": "Active",
+      "upstreamsUp": 3,
+      "upstreamsTotal": 3,
+      "statusCheckedAt": "2026-10-21T04:49:23.4758502+00:00"
+    },
+    {
+      "id": "b06756a3-4adb-481c-a64b-74d6877771a2",
+      "name": "Windows Services",
+      "host": "192.0.2.30",
+      "os": "windows",
+      "ruleCount": 1,
+      "status": "Inactive",
+      "upstreamsUp": 0,
+      "upstreamsTotal": 0,
+      "statusCheckedAt": "2026-10-21T04:49:22.758797+00:00"
+    }
+  ]
+}
