@@ -569,23 +569,73 @@ def _starts_with_admin_check(fn: ast.AsyncFunctionDef) -> bool:
     )
 
 
+def _only_override(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Whether the method's decorators leave it as written; any other may replace it."""
+    return all(
+        (isinstance(d, ast.Name) and d.id == "override")
+        or (isinstance(d, ast.Attribute) and d.attr == "override")
+        for d in fn.decorator_list
+    )
+
+
+def _command_bindings(node: ast.AST) -> list[str]:
+    """The entity command names a node binds: a def, an assignment or a setattr."""
+    if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+        names = [node.name]
+    elif isinstance(node, ast.Assign | ast.AnnAssign | ast.AugAssign):
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        names = [
+            n.id if isinstance(n, ast.Name) else n.attr
+            for t in targets
+            for n in ast.walk(t)
+            if isinstance(n, ast.Name | ast.Attribute)
+        ]
+    elif (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "setattr"
+        and len(node.args) > 1
+        and isinstance(node.args[1], ast.Constant)
+    ):
+        names = [str(node.args[1].value)]
+    else:
+        return []
+    return [n for n in names if n in ENTITY_COMMANDS]
+
+
 def entity_commands() -> list[tuple[str, str, bool]]:
-    """Each entity command method in the component, and if it starts with the check."""
+    """Each binding of an entity command in the component, and if it is checked.
+
+    Checked means a method in a class body, decorated by `override` at most, whose
+    first statement is the check. Any other binding is unchecked.
+    """
     found = []
     for f in sorted(os.listdir(COMP)):
         if not f.endswith(".py"):
             continue
         tree = ast.parse(read(COMP, f))
+        methods: set[ast.AST] = set()
         for cls in (n for n in ast.walk(tree) if isinstance(n, ast.ClassDef)):
             for fn in cls.body:
                 if not isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
                     continue
                 if fn.name not in ENTITY_COMMANDS:
                     continue
-                checked = isinstance(
-                    fn, ast.AsyncFunctionDef
-                ) and _starts_with_admin_check(fn)
+                methods.add(fn)
+                checked = (
+                    isinstance(fn, ast.AsyncFunctionDef)
+                    and _only_override(fn)
+                    and _starts_with_admin_check(fn)
+                )
                 found.append((f, f"{cls.name}.{fn.name}", checked))
+        for node in ast.walk(tree):
+            if node in methods:
+                continue
+            for name in _command_bindings(node):
+                line = getattr(node, "lineno", 0)
+                found.append(
+                    (f, f"{name} bound outside a method at line {line}", False)
+                )
     return found
 
 
