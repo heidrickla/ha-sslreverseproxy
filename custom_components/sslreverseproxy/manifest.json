@@ -1,9 +1,6 @@
 {
   "domain": "sslreverseproxy",
   "name": "SSL Reverse Proxy",
-  "categories": [
-    "computers_network.routers_network"
-  ],
   "codeowners": [
     "@heidrickla"
   ],

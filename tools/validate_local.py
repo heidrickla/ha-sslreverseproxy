@@ -676,14 +676,19 @@ def main() -> int:
             f"{manifest.get('version')!r} - bump them together",
         )
 
+    # Optional: the hassfest image of Home Assistant 2026.10 refuses the key,
+    # and the HACS action only warns when it is missing.
     categories = manifest.get("categories")
     check(
-        isinstance(categories, list)
-        and 1 <= len(categories) <= 3
-        and len(set(categories)) == len(categories)
-        and all(
-            isinstance(c, str) and re.fullmatch(r"[a-z0-9_]+(\.[a-z0-9_]+)?", c)
-            for c in categories
+        categories is None
+        or (
+            isinstance(categories, list)
+            and 1 <= len(categories) <= 3
+            and len(set(categories)) == len(categories)
+            and all(
+                isinstance(c, str) and re.fullmatch(r"[a-z0-9_]+(\.[a-z0-9_]+)?", c)
+                for c in categories
+            )
         ),
         "manifest categories must be one to three integration categories "
         "(the HACS action checks them against core's list)",
