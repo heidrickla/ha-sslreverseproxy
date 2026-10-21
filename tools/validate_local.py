@@ -40,6 +40,19 @@ DOMAIN = "sslreverseproxy"
 COMP = os.path.join(ROOT, "custom_components", DOMAIN)
 PLATFORMS = ("binary_sensor", "button", "sensor")
 
+# The hacs.json keys HACS documents and the Marketplace reads.
+HACS_JSON_KEYS = {
+    "content_in_root",
+    "country",
+    "filename",
+    "hacs",
+    "hide_default_branch",
+    "homeassistant",
+    "name",
+    "persistent_directory",
+    "zip_release",
+}
+
 # hassfest requires these for a custom integration.
 REQUIRED_MANIFEST = [
     "domain",
@@ -610,7 +623,7 @@ def entity_commands() -> list[tuple[str, str, bool]]:
 def main() -> int:
     manifest = read_json(COMP, "manifest.json")
     const_src = read(COMP, "const.py")
-    strings = read_json(COMP, "strings.json")
+    strings = read_json(COMP, "translations", "en.json")
 
     # ---------------------------------------------------------- manifest
     for key in REQUIRED_MANIFEST:
@@ -663,9 +676,27 @@ def main() -> int:
             f"{manifest.get('version')!r} - bump them together",
         )
 
+    categories = manifest.get("categories")
+    check(
+        isinstance(categories, list)
+        and 1 <= len(categories) <= 3
+        and len(set(categories)) == len(categories)
+        and all(
+            isinstance(c, str) and re.fullmatch(r"[a-z0-9_]+(\.[a-z0-9_]+)?", c)
+            for c in categories
+        ),
+        "manifest categories must be one to three integration categories "
+        "(the HACS action checks them against core's list)",
+    )
+
     # ---------------------------------------------------------- hacs.json
     hacs = read_json(ROOT, "hacs.json")
     check("name" in hacs, "hacs.json must contain name")
+    check(
+        set(hacs) <= HACS_JSON_KEYS,
+        f"hacs.json keys {sorted(set(hacs) - HACS_JSON_KEYS)} are not ones "
+        "HACS or the Marketplace read",
+    )
 
     # ---------------------------------------------------------- brand images
     brand = os.path.join(COMP, "brand")
@@ -673,10 +704,11 @@ def main() -> int:
         check(os.path.isfile(os.path.join(brand, name)), f"missing brand/{name}")
 
     # ---------------------------------------------------------- translations
-    en = read_json(COMP, "translations", "en.json")
+    # A custom integration ships translations/en.json as the source and the
+    # fallback; strings.json is compiled only in core, so it ships unused.
     check(
-        strings == en,
-        "strings.json and translations/en.json differ - copy strings.json over",
+        not os.path.exists(os.path.join(COMP, "strings.json")),
+        "strings.json is core-only - edit translations/en.json",
     )
 
     def leaves(node: object, path: str) -> list[tuple[str, str]]:
@@ -689,7 +721,12 @@ def main() -> int:
         # placeholders instead".
         check(
             "http://" not in text and "https://" not in text,
-            f"strings.json {where} contains a URL - use a description placeholder",
+            f"en.json {where} contains a URL - use a description placeholder",
+        )
+        # Nothing resolves a reference outside core: the user reads it raw.
+        check(
+            "[%key:" not in text,
+            f"en.json {where} holds a [%key:...%] reference - write it out",
         )
 
     # ---------------------------------------------------------- actions
@@ -699,7 +736,7 @@ def main() -> int:
     declared_services = set(strings.get("services", {}))
     check(
         declared_services == service_consts,
-        f"strings.json describes {sorted(declared_services)} but const.py "
+        f"en.json describes {sorted(declared_services)} but const.py "
         f"registers {sorted(service_consts)}",
     )
     try:
@@ -717,7 +754,7 @@ def main() -> int:
             check(
                 yaml_fields == described,
                 f"action {name}: services.yaml fields {sorted(yaml_fields)} != "
-                f"strings.json fields {sorted(described)}",
+                f"en.json fields {sorted(described)}",
             )
             for field_spec in (spec or {}).get("fields", {}).values():
                 selector = (field_spec or {}).get("selector", {})
@@ -725,7 +762,7 @@ def main() -> int:
                 if tkey:
                     check(
                         tkey in strings.get("selector", {}),
-                        f"selector translation {tkey!r} missing from strings.json",
+                        f"selector translation {tkey!r} missing from en.json",
                     )
     except ImportError:
         check(
@@ -866,17 +903,17 @@ def main() -> int:
     for step in set(re.findall(r'step_id="([a-z_]+)"', flow_src)):
         check(
             step in config_strings.get("step", {}),
-            f"config flow shows step {step!r} with no strings.json entry",
+            f"config flow shows step {step!r} with no en.json entry",
         )
     for step in config_strings.get("step", {}):
         check(
             f"async_step_{step}(" in flow_src,
-            f"strings.json describes step {step!r} that the flow does not have",
+            f"en.json describes step {step!r} that the flow does not have",
         )
     for error in set(re.findall(r'\{"base": "([a-z_]+)"\}', flow_src)):
         check(
             error in config_strings.get("error", {}),
-            f"config flow returns error {error!r} with no strings.json entry",
+            f"config flow returns error {error!r} with no en.json entry",
         )
     # The three Home Assistant raises itself, whatever the flow says.
     abort_reasons = set(re.findall(r'reason="([a-z_]+)"', flow_src)) | {
@@ -887,12 +924,12 @@ def main() -> int:
     for reason in abort_reasons:
         check(
             reason in config_strings.get("abort", {}),
-            f"config flow aborts with {reason!r} with no strings.json entry",
+            f"config flow aborts with {reason!r} with no en.json entry",
         )
     for reason in config_strings.get("abort", {}):
         check(
             reason in abort_reasons,
-            f"strings.json declares unused abort reason {reason!r}",
+            f"en.json declares unused abort reason {reason!r}",
         )
 
     # ------------------------------------------------------ icon translations
@@ -946,7 +983,7 @@ def main() -> int:
     )
     check(
         declared_exc <= raised,
-        f"strings.json declares unused exceptions {sorted(declared_exc - raised)}",
+        f"en.json declares unused exceptions {sorted(declared_exc - raised)}",
     )
 
     # ----------------------------------------------------- issue translations
@@ -954,7 +991,7 @@ def main() -> int:
     declared_issues = set(strings.get("issues", {}))
     check(
         issue_consts == declared_issues,
-        f"const.py issues {sorted(issue_consts)} != strings.json issues "
+        f"const.py issues {sorted(issue_consts)} != en.json issues "
         f"{sorted(declared_issues)}",
     )
 

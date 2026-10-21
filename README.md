@@ -54,11 +54,15 @@ Both actions and both buttons run for administrators and for automations and scr
 
 ## Installation
 
-HACS (custom repository): add this repository as a custom repository of type Integration, install, restart Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=heidrickla&repository=ha-sslreverseproxy&category=integration)
+
+Marketplace (Home Assistant 2026.11 and later) or HACS (2026.10): the badge opens this repository and offers to add it. Without it, add `https://github.com/heidrickla/ha-sslreverseproxy` as a custom repository of type Integration. Download it. HACS needs a restart afterwards; the Marketplace loads it without one.
 
 Manual: copy `custom_components/sslreverseproxy/` into your Home Assistant `config/custom_components/` directory and restart.
 
-Then Settings -> Devices & Services -> Add Integration -> SSL Reverse Proxy.
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=sslreverseproxy)
+
+Then Settings -> Devices & Services -> Add Integration -> SSL Reverse Proxy, or the badge above.
 
 ### Installation parameters
 

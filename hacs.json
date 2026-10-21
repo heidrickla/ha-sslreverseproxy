@@ -1,5 +1,4 @@
 {
   "name": "SSL Reverse Proxy",
-  "render_readme": true,
   "homeassistant": "2026.10.0"
 }
