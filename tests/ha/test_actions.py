@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from homeassistant.auth.models import User
-from homeassistant.core import Context, HomeAssistant
+from homeassistant.core import Context, HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
@@ -19,6 +19,7 @@ from homeassistant.helpers.entity_platform import async_get_platforms
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.sslreverseproxy import PLATFORMS
+from custom_components.sslreverseproxy.button import ReloadButton, RenewButton
 from custom_components.sslreverseproxy.const import DOMAIN
 from tests.pure import body, recorded
 
@@ -310,3 +311,40 @@ async def test_each_write_is_authorized_with_its_calls_own_context(
     renew = _button(hass, f"{INSTANCE_ID}_certificate_{CERT['id']}_renew")
     await _press(hass, renew, contexts[3])
     assert [id(c) for c in seen] == [id(c) for c in contexts]
+
+
+async def test_a_route_that_skips_its_own_check_still_cannot_write(
+    hass: HomeAssistant,
+    api: Api,
+    loaded: MockConfigEntry,
+    users: tuple[User, User],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A press or an action without its own check meets the client's."""
+    _, user = users
+
+    async def reload(self: ReloadButton) -> None:
+        await self.coordinator.client.reload(self._context)
+
+    async def renew(self: RenewButton) -> None:
+        client = self.coordinator.client
+        await client.renew_certificate(self.certificate_id, self._context)
+
+    async def unchecked(call: ServiceCall) -> None:
+        await loaded.runtime_data.client.reload(call.context)
+
+    monkeypatch.setattr(ReloadButton, "async_press", reload)
+    monkeypatch.setattr(RenewButton, "async_press", renew)
+    hass.services.async_register(DOMAIN, "unchecked_reload", unchecked)
+    context = Context(user_id=user.id)
+    for unique_id in (
+        f"{INSTANCE_ID}_reload",
+        f"{INSTANCE_ID}_certificate_{CERT['id']}_renew",
+    ):
+        with pytest.raises(Unauthorized):
+            await _press(hass, _button(hass, unique_id), context)
+    with pytest.raises(Unauthorized):
+        await hass.services.async_call(
+            DOMAIN, "unchecked_reload", {}, blocking=True, context=context
+        )
+    assert not [c for c in api.mocker.mock_calls if c[0] != "GET"]
