@@ -175,7 +175,7 @@ Download diagnostics from the installation's device page for a report with the k
 
 - `custom_components/sslreverseproxy/api.py` and `models.py` import nothing from Home Assistant. `tests/test_api.py` and `tests/test_models.py` run them on a bare interpreter against `tests/fixtures/`, which are answers recorded from a control plane running its demo data, with documentation addresses only.
 - `tests/ha/` covers the Home Assistant layer against the same recorded answers. The GitHub Tests workflow runs both suites on Home Assistant 2026.10.2 (pytest-homeassistant-custom-component 0.13.373) on Python 3.14, measured into one coverage figure that fails under 95%, with mypy in strict mode.
-- `python tools/validate_local.py` is the offline half of the hassfest and HACS checks plus the cross-file checks: every user-facing exception has a translation key, every action registers as an administrator action, every button press is a method that checks the user before anything else and is bound no other way, and the published tree carries no private address or listed development host name (`HA_DEV_HOST_NAMES`, comma separated).
+- `python tools/validate_local.py` is the offline half of the hassfest and HACS checks plus the cross-file checks: every user-facing exception has a translation key, every action registers as an administrator action, every button press is a method that checks the user before anything else and is bound no other way (the component uses no `setattr`, `delattr`, `vars`, `__dict__` or three-argument `type`), and the published tree carries no private address or listed development host name (`HA_DEV_HOST_NAMES`, comma separated).
 - `python tools/make_brand.py` regenerates the brand images and checks their sizes and transparency.
 
 ```bash

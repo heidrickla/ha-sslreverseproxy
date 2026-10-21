@@ -579,7 +579,7 @@ def _only_override(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
 
 
 def _command_bindings(node: ast.AST) -> list[str]:
-    """The entity command names a node binds: a def, an assignment or a setattr."""
+    """The entity command names a node binds by a def or an assignment."""
     if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
         names = [node.name]
     elif isinstance(node, ast.Assign | ast.AnnAssign | ast.AugAssign):
@@ -590,17 +590,34 @@ def _command_bindings(node: ast.AST) -> list[str]:
             for n in ast.walk(t)
             if isinstance(n, ast.Name | ast.Attribute)
         ]
-    elif (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "setattr"
-        and len(node.args) > 1
-        and isinstance(node.args[1], ast.Constant)
-    ):
-        names = [str(node.args[1].value)]
     else:
         return []
     return [n for n in names if n in ENTITY_COMMANDS]
+
+
+# Ways to bind an attribute under a name the AST does not show.
+DYNAMIC_CALLS = frozenset({"setattr", "delattr", "vars"})
+DYNAMIC_ATTRS = frozenset({"__dict__", "__setattr__", "__delattr__"})
+
+
+def dynamic_bindings() -> list[tuple[str, int, str]]:
+    """Each use in the component of a form that can bind a press unseen."""
+    found = []
+    for f in sorted(os.listdir(COMP)):
+        if not f.endswith(".py"):
+            continue
+        for node in ast.walk(ast.parse(read(COMP, f))):
+            form = None
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                if node.func.id in DYNAMIC_CALLS:
+                    form = f"{node.func.id}()"
+                elif node.func.id == "type" and len(node.args) == 3:
+                    form = "type() with a class body"
+            elif isinstance(node, ast.Attribute) and node.attr in DYNAMIC_ATTRS:
+                form = node.attr
+            if form:
+                found.append((f, getattr(node, "lineno", 0), form))
+    return found
 
 
 def entity_commands() -> list[tuple[str, str, bool]]:
@@ -1023,6 +1040,11 @@ def main() -> int:
     check(bool(commands), "no button press found to check for the administrator check")
     for f, method, checked in commands:
         check(checked, f"{f} {method} does not start with the administrator check")
+    for f, line, form in dynamic_bindings():
+        check(
+            False,
+            f"{f}:{line} uses {form}, which can bind a press the validator cannot read",
+        )
 
     # ---------------------------------------------- development-host refusal
     for _key in ("documentation", "issue_tracker"):
