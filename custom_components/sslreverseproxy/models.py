@@ -32,6 +32,14 @@ def _str(data: Mapping[str, Any], key: str) -> str:
     return value
 
 
+def _uuid(data: Mapping[str, Any], key: str) -> str:
+    """The canonical form of a UUID field; ids go into request paths."""
+    try:
+        return str(uuid.UUID(_str(data, key)))
+    except ValueError as err:
+        raise ModelError(f"{key} is not a UUID") from err
+
+
 def _opt_str(data: Mapping[str, Any], key: str) -> str | None:
     value = data.get(key)
     if value is None:
@@ -102,13 +110,9 @@ class Instance:
     @classmethod
     def from_json(cls, data: Any) -> Instance:
         d = _obj(data, "instance")
-        try:
-            # The entry's identity: one installation, compared on every setup.
-            instance_id = str(uuid.UUID(_str(d, "instanceId")))
-        except ValueError as err:
-            raise ModelError("instanceId is not a UUID") from err
         return cls(
-            instance_id=instance_id,
+            # The entry's identity: one installation, compared on every setup.
+            instance_id=_uuid(d, "instanceId"),
             api_version=_int(d, "apiVersion"),
             capabilities=_names(d, "capabilities"),
         )
@@ -127,7 +131,7 @@ class ApiKeyInfo:
     def from_json(cls, data: Any) -> ApiKeyInfo:
         d = _obj(data, "key")
         return cls(
-            id=_str(d, "id").lower(),
+            id=_uuid(d, "id"),
             name=_str(d, "name"),
             expires_at=_opt_time(d, "expiresAt"),
             scopes=None if d.get("scopes") is None else _names(d, "scopes"),
@@ -195,7 +199,7 @@ class Server:
     def from_json(cls, data: Any) -> Server:
         d = _obj(data, "server")
         return cls(
-            id=_str(d, "id").lower(),
+            id=_uuid(d, "id"),
             name=_str(d, "name"),
             host=_str(d, "host"),
             os=_str(d, "os"),
@@ -272,7 +276,7 @@ class Certificate:
     def from_json(cls, data: Any) -> Certificate:
         d = _obj(data, "certificate")
         return cls(
-            id=_str(d, "id").lower(),
+            id=_uuid(d, "id"),
             domain=_str(d, "domain"),
             issuer=_str(d, "issuer"),
             status=_str(d, "status").lower(),

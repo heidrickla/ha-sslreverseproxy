@@ -34,6 +34,32 @@ def test_an_instance_id_that_is_not_a_uuid_is_refused(value: str) -> None:
         models.Instance.from_json(data)
 
 
+@pytest.mark.parametrize(
+    ("model", "fixture", "key"),
+    [
+        ("Server", "servers.json", None),
+        ("Certificate", "certificates.json", None),
+        ("ApiKeyInfo", "whoami_home_assistant.json", "key"),
+    ],
+)
+@pytest.mark.parametrize("value", ["", "x", "../proxy/reload", "a/b", "f2ab8614"])
+def test_an_id_that_is_not_a_uuid_is_refused(
+    model: str, fixture: str, key: str | None, value: str
+) -> None:
+    data = copy.deepcopy(body(fixture))
+    item = data[key] if key else data[0]
+    item["id"] = value
+    with pytest.raises(models.ModelError, match="id is not a UUID"):
+        getattr(models, model).from_json(item)
+
+
+def test_ids_are_the_canonical_uuid() -> None:
+    data = copy.deepcopy(body("certificates.json")[0])
+    expected = data["id"]
+    data["id"] = expected.upper()
+    assert models.Certificate.from_json(data).id == expected
+
+
 def test_whoami_home_assistant_key() -> None:
     who = models.WhoAmI.from_json(body("whoami_home_assistant.json"))
     assert who.permissions == {"ServerRead", "CertRead", "ProxyReload", "CertRenew"}

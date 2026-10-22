@@ -2,6 +2,12 @@
 
 Changes a user of this integration would notice, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the version numbers are the ones in `manifest.json`.
 
+## [0.1.1] - 2026-10-22
+
+### Changed
+
+- Server, certificate and API key ids are read as UUIDs, as the instance id is; an answer holding another form is refused as malformed. A certificate id is sent as one escaped path segment.
+
 ## [0.1.0] - 2026-10-21
 
 ### Added

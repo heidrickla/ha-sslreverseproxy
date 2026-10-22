@@ -153,6 +153,15 @@ def test_server_text_never_carries_the_key(status: int, echoed: str) -> None:
     assert DOTTED_KEY.rpartition(".")[2] not in str(caught.value)
 
 
+def test_a_certificate_id_is_one_escaped_path_segment() -> None:
+    cert_id = "../proxy/reload"
+    routes: Routes = {
+        ("POST", "/api/certificates/../proxy/reload/renew"): recorded("renew.json")
+    }
+    _cert, seen = _run(routes, lambda c: c.renew_certificate(cert_id, CALLER))
+    assert seen[0].raw_path == "/api/certificates/..%2Fproxy%2Freload/renew"
+
+
 def test_a_renewal_refusal_carries_the_reason() -> None:
     routes: Routes = {
         ("POST", "/api/certificates/x/renew"): recorded("renew_refused.json")

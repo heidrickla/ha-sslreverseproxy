@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import aiohttp
 
@@ -189,7 +189,9 @@ class SslrpClient:
     ) -> Certificate:
         """Ask Caddy to reissue a served certificate. 409 says why it cannot."""
         body = await self._request(
-            "POST", f"/api/certificates/{certificate_id}/renew", caller=caller
+            "POST",
+            f"/api/certificates/{quote(certificate_id, safe='')}/renew",
+            caller=caller,
         )
         return _parse(Certificate.from_json, body)
 

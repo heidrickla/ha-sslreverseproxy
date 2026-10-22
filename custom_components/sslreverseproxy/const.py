@@ -8,7 +8,7 @@ from typing import Final
 DOMAIN: Final = "sslreverseproxy"
 NAME: Final = "SSL Reverse Proxy"
 MANUFACTURER: Final = "SSLReverseProxy"
-VERSION: Final = "0.1.0"
+VERSION: Final = "0.1.1"
 
 # The /api/instance contract this client speaks; a higher one may break it.
 API_VERSION: Final = 1
