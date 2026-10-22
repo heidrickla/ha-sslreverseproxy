@@ -97,7 +97,7 @@ Settings -> Devices & Services -> SSL Reverse Proxy -> Delete. That removes the 
 | Proxy status, servers, traffic and the key's record | 60 s |
 | Certificates | 15 min |
 
-The control plane keeps traffic as 24-hour aggregates, so the counts cover the last 24 hours and a faster poll adds nothing. A failed poll marks that poll's entities unavailable; the failure and the recovery are each logged once. Buttons and actions refresh their entities after they run.
+The control plane keeps traffic as 24-hour aggregates, so the counts cover the last 24 hours and a faster poll adds nothing. A failed poll marks that poll's entities unavailable; the failure and the recovery are each logged once. Buttons and actions refresh their entities after they run. Every id the control plane returns (instance, server, certificate, API key) is read as a UUID, and an answer holding another form is refused as malformed.
 
 ## Examples
 
