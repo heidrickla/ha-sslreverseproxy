@@ -2,6 +2,14 @@
 
 Changes a user of this integration would notice, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the version numbers are the ones in `manifest.json`.
 
+## [0.1.2] - 2026-10-30
+
+### Changed
+
+- The first setup screen asks only for the control plane's address and an API key. Verify the TLS certificate sits in a collapsed Advanced section, on by default; an error opens it. Reconfigure has the same shape, with Advanced open while the check is off.
+- A key the control plane refuses, or one without `ServerRead` and `CertRead`, leads to a step that says how to issue a key with the Home Assistant scope and checks the new key on Submit, keeping the address and certificate check already entered.
+- The README's Installation starts with the My Home Assistant buttons and lists the setup screens as they now are.
+
 ## [0.1.1] - 2026-10-22
 
 ### Changed

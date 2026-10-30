@@ -54,15 +54,21 @@ Both actions and both buttons run for administrators and for automations and scr
 
 ## Installation
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=heidrickla&repository=ha-sslreverseproxy&category=integration)
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=heidrickla&repository=ha-sslreverseproxy&category=integration)
 
-Marketplace (Home Assistant 2026.11 and later) or HACS (2026.10): the badge opens this repository and offers to add it. Without it, add `https://github.com/heidrickla/ha-sslreverseproxy` as a custom repository of type Integration. Download it. HACS needs a restart afterwards; the Marketplace loads it without one.
+1. Press the button above. HACS (Home Assistant 2026.10) or the Marketplace (2026.11 and later) opens this repository and offers to add it. Download it; HACS asks for a restart afterwards, the Marketplace loads it without one.
+2. Press this button to start the setup:
 
-Manual: copy `custom_components/sslreverseproxy/` into your Home Assistant `config/custom_components/` directory and restart.
+[![Open your Home Assistant instance and start setting up SSL Reverse Proxy.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=sslreverseproxy)
 
-[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=sslreverseproxy)
+The setup has one screen, and a second only when the key is the problem:
 
-Then Settings -> Devices & Services -> Add Integration -> SSL Reverse Proxy, or the badge above.
+1. Connect to SSL Reverse Proxy: enter the control plane's address and the API key, then press Submit.
+2. Issue a key for Home Assistant: shown only when the address answered but refused the key, or the key lacks `ServerRead` or `CertRead`. It says how to issue one with the Home Assistant scope; enter the new key and press Submit to check it again. The address and certificate check you entered are kept.
+
+The Advanced section of the first screen holds Verify the TLS certificate, on by default; turn it off only for a control plane with a self-signed certificate.
+
+Without the buttons: HACS, the three-dot menu, Custom repositories, add `https://github.com/heidrickla/ha-sslreverseproxy` as an Integration, download SSL Reverse Proxy and restart; then Settings, Devices & services, Add integration, SSL Reverse Proxy. Manual install: copy `custom_components/sslreverseproxy/` into your Home Assistant `config/custom_components/` directory and restart.
 
 ### Installation parameters
 
@@ -70,9 +76,9 @@ Then Settings -> Devices & Services -> Add Integration -> SSL Reverse Proxy, or 
 |---|---|
 | Address | The control plane's address, for example `https://proxy.example.com`. A trailing `/api` is removed. User names, queries and fragments are refused. |
 | API key | A key with at least `ServerRead` and `CertRead`. |
-| Verify the TLS certificate | On by default. Turn it off only for a self-signed certificate. |
+| Verify the TLS certificate (Advanced) | On by default. Turn it off only for a self-signed certificate. |
 
-Setup reads `/api/instance` and `/api/whoami` before the entry is created, so an unreachable address, a refused key, a key without `ServerRead` and `CertRead`, and an unsupported API version are caught on the form. The flow only reads; it never reloads or renews. The installation's instance id is the entry's unique id: adding an installation that is already configured updates the existing entry. The key is never sent back to the form.
+Setup reads `/api/instance` and `/api/whoami` before the entry is created. An unreachable address and an unsupported API version are shown on the first screen; a refused key and a key without `ServerRead` and `CertRead` lead to the key step. The flow only reads; it never reloads or renews. The installation's instance id is the entry's unique id: adding an installation that is already configured updates the existing entry. The key is never sent back to the form.
 
 ### Reconfiguring
 

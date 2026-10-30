@@ -6,13 +6,33 @@
         "description": "Issue a key in SSL Reverse Proxy under API keys with the Home Assistant preset. Read only also works, without the Reload and Renew buttons.",
         "data": {
           "url": "Address",
-          "api_key": "API key",
-          "verify_ssl": "Verify the TLS certificate"
+          "api_key": "API key"
         },
         "data_description": {
           "url": "The control plane's address, for example {example_url}.",
-          "api_key": "Needs at least ServerRead and CertRead.",
-          "verify_ssl": "Turn off only for a self-signed certificate."
+          "api_key": "Needs at least ServerRead and CertRead."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "description": "Change this only for a control plane with a self-signed certificate.",
+            "data": {
+              "verify_ssl": "Verify the TLS certificate"
+            },
+            "data_description": {
+              "verify_ssl": "Turn off only for a self-signed certificate."
+            }
+          }
+        }
+      },
+      "api_key": {
+        "title": "Issue a key for Home Assistant",
+        "description": "{url} answered, but not to that key. In SSL Reverse Proxy at {url}, open API keys, choose New key, pick the Home Assistant scope and a lifetime, and enter the key it shows here. Submit checks it again. A Read only key also works, without the Reload and Renew buttons.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Needs at least ServerRead and CertRead."
         }
       },
       "reauth_confirm": {
@@ -27,13 +47,23 @@
         "description": "Leave the key blank to keep the current one.",
         "data": {
           "url": "Address",
-          "api_key": "API key",
-          "verify_ssl": "Verify the TLS certificate"
+          "api_key": "API key"
         },
         "data_description": {
           "url": "The control plane's address, for example {example_url}.",
-          "api_key": "Needs at least ServerRead and CertRead.",
-          "verify_ssl": "Turn off only for a self-signed certificate."
+          "api_key": "Needs at least ServerRead and CertRead."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced",
+            "description": "Change this only for a control plane with a self-signed certificate.",
+            "data": {
+              "verify_ssl": "Verify the TLS certificate"
+            },
+            "data_description": {
+              "verify_ssl": "Turn off only for a self-signed certificate."
+            }
+          }
         }
       }
     },

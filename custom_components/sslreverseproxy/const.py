@@ -8,7 +8,7 @@ from typing import Final
 DOMAIN: Final = "sslreverseproxy"
 NAME: Final = "SSL Reverse Proxy"
 MANUFACTURER: Final = "SSLReverseProxy"
-VERSION: Final = "0.1.1"
+VERSION: Final = "0.1.2"
 
 # The /api/instance contract this client speaks; a higher one may break it.
 API_VERSION: Final = 1
@@ -17,6 +17,9 @@ SCAN_INTERVAL: Final = timedelta(seconds=60)
 CERTIFICATE_SCAN_INTERVAL: Final = timedelta(minutes=15)
 
 DEFAULT_VERIFY_SSL: Final = True
+
+# The config flow's collapsed section for what has a sensible default.
+CONF_ADVANCED: Final = "advanced"
 
 # Permission names as /api/whoami reports them.
 PERMISSION_SERVER_READ: Final = "ServerRead"
