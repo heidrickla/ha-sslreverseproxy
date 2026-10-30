@@ -2,6 +2,20 @@
 
 Monitors and controls an [SSLReverseProxy](https://github.com/heidrickla/SSLReverseProxy) control plane: the proxy's state and traffic, each proxied server's upstream health, each certificate's expiry and renewal, and Reload and Renew from Home Assistant.
 
+## Screenshots
+
+![The Connect to SSL Reverse Proxy setup screen asking for the address and API key](docs/images/setup.png)
+
+Setup asks for the control plane's address and an API key.
+
+![The setup screen shown when the control plane refuses the key](docs/images/api-key.png)
+
+A refused key leads to a screen that says how to issue one and checks again.
+
+![The SSL Reverse Proxy device page with the proxy's sensors and connected devices](docs/images/device.png)
+
+The proxy device, captured against the test suite's recorded control-plane answers.
+
 ## What you get
 
 | Device | One per | Model |
