@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import contextlib
 import json
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -224,12 +225,25 @@ def test_connection_refused_is_a_connection_error() -> None:
 def test_a_timeout_is_a_connection_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(api, "REQUEST_TIMEOUT", aiohttp.ClientTimeout(total=0.2))
 
+    given_up = asyncio.Event()
+
     async def slow(_: web.Request) -> web.StreamResponse:
-        await asyncio.sleep(2)
+        # Answers once the client has given up, so the server's cleanup does
+        # not wait on a handler sleeping past the timeout; at most 5 s, so a
+        # client with no timeout gets its 200 and fails the test, not hangs it.
+        with contextlib.suppress(TimeoutError):
+            async with asyncio.timeout(5):
+                await given_up.wait()
         return web.Response(status=200)
 
+    async def call(client: Any) -> Any:
+        try:
+            return await client.get_instance()
+        finally:
+            given_up.set()
+
     with pytest.raises(api.SslrpConnectionError, match="timed out"):
-        _run({("GET", "/api/instance"): slow}, lambda c: c.get_instance())
+        _run({("GET", "/api/instance"): slow}, call)
 
 
 @pytest.mark.parametrize(

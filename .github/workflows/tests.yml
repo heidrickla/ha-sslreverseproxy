@@ -17,11 +17,13 @@ jobs:
         with:
           python-version: "3.14"
       # 0.13.373 pins Home Assistant 2026.10.2 and brings pytest, its plugins
-      # and pytest-cov.
+      # and pytest-cov. uv installs the same packages as pip did (compared
+      # 2026-10-30) in a fifth of the time; 0.12.23 is the uv the harness
+      # itself pins.
       - run: |
           python -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install "mypy==1.18.2" "ruff==0.15.21" "pytest-homeassistant-custom-component==0.13.373"
+          .venv/bin/python -m pip install "uv==0.12.23"
+          .venv/bin/python -m uv pip install --python .venv/bin/python "mypy==1.18.2" "ruff==0.15.21" "pytest-homeassistant-custom-component==0.13.373"
       - run: .venv/bin/ruff check .
       - run: .venv/bin/ruff format --check .
       # Both suites measure into one coverage file; the second run is the gate.

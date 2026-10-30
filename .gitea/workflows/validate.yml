@@ -92,6 +92,8 @@ jobs:
       # The pure environment holds pytest and aiohttp only, so a Home
       # Assistant import in api.py or models.py fails its run.
       # pytest-homeassistant-custom-component 0.13.373 pins Home Assistant 2026.10.2.
+      # uv installs the same packages as pip did (compared 2026-10-30) in a
+      # fifth of the time; 0.12.23 is the uv the harness itself pins.
       - name: Install
         timeout-minutes: 15
         run: |
@@ -99,8 +101,8 @@ jobs:
           .venv-pure/bin/python -m pip install --quiet --upgrade pip
           .venv-pure/bin/python -m pip install --quiet pytest "aiohttp==3.14.5"
           python -m venv .venv
-          .venv/bin/python -m pip install --quiet --upgrade pip
-          .venv/bin/python -m pip install --quiet "mypy==1.18.2" "pytest-homeassistant-custom-component==0.13.373"
+          .venv/bin/python -m pip install --quiet "uv==0.12.23"
+          .venv/bin/python -m uv pip install --quiet --python .venv/bin/python "mypy==1.18.2" "pytest-homeassistant-custom-component==0.13.373"
 
       - name: Pure tests
         timeout-minutes: 15
