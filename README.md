@@ -96,7 +96,7 @@ Setup reads `/api/instance` and `/api/whoami` before the entry is created. An un
 
 ### Reconfiguring
 
-Settings -> Devices & Services -> SSL Reverse Proxy -> Reconfigure changes the address, the key and the certificate check. A blank key keeps the current one. The address must answer as the same installation. There are no options beyond these.
+Settings -> Devices & Services -> SSL Reverse Proxy -> Reconfigure changes the address, the key and the certificate check. Its Advanced section opens while the certificate check is off, and on an error. A blank key keeps the current one. The address must answer as the same installation. There are no options beyond these.
 
 ### Replacing the key
 
