@@ -66,7 +66,9 @@ def _form(key: type[probatio.Marker], collapsed: bool) -> probatio.Schema:
         {
             probatio.Required(CONF_URL): _URL,
             key(CONF_API_KEY): _KEY,
-            probatio.Required(CONF_ADVANCED, default={}): section(
+            # No default on the section key: the frontend would send that
+            # default as the section's data and skip the defaults inside.
+            probatio.Required(CONF_ADVANCED): section(
                 ADVANCED_SCHEMA, {"collapsed": collapsed}
             ),
         }

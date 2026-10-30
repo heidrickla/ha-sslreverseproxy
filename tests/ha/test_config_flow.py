@@ -17,6 +17,7 @@ from custom_components.sslreverseproxy.const import CONF_ADVANCED, DOMAIN
 from tests.pure import recorded
 
 from .conftest import INSTANCE_ID, KEY, URL, Api
+from .frontend_form import frontend_submission
 
 USER_INPUT = {
     CONF_URL: f"{URL}/api/",
@@ -77,7 +78,8 @@ async def test_the_first_screen_asks_only_for_the_address_and_key(
     assert check.default() is True
     # Advanced left closed and untouched: the certificate is checked.
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_URL: URL, CONF_API_KEY: KEY}
+        result["flow_id"],
+        frontend_submission(result, {CONF_URL: URL, CONF_API_KEY: KEY}),
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_URL: URL, CONF_API_KEY: KEY, CONF_VERIFY_SSL: True}
@@ -338,7 +340,8 @@ async def test_reconfigure_with_a_new_key_and_an_error_first(
     assert _fields(result)[CONF_ADVANCED].options["collapsed"] is False
     assert "new" not in repr(_suggested(result["data_schema"]))
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_URL: URL, CONF_API_KEY: "new"}
+        result["flow_id"],
+        frontend_submission(result, {CONF_URL: URL, CONF_API_KEY: "new"}),
     )
     assert result["reason"] == "reconfigure_successful"
     assert entry.data[CONF_API_KEY] == "new"
@@ -353,7 +356,7 @@ async def test_reconfigure_refuses_another_instance(
     )
     result = await entry.start_reconfigure_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_URL: URL}
+        result["flow_id"], frontend_submission(result, {CONF_URL: URL})
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "wrong_instance"
