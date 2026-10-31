@@ -7,9 +7,8 @@ Home Assistant 2026.3 and later serve custom_components/<domain>/brand/.
     logo.png       512x256
     logo@2x.png    1024x512
 
-Transparent background, the mark filling the image less a few percent of
-padding. The mark is what the service does: a padlock (TLS) with one route in
-and three routes out to upstreams.
+The icons use brand/icon-source.png. The wide logos retain the lock and
+routed connections.
 """
 
 from __future__ import annotations
@@ -83,8 +82,18 @@ def main() -> None:
         "logo.png": (512, 256),
         "logo@2x.png": (1024, 512),
     }
+    source = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "brand", "icon-source.png"
+    )
+    with Image.open(source) as original:
+        approved_icon = original.convert("RGBA")
     for name, size in specs.items():
-        draw(size, pad_frac=PAD_FRAC).save(os.path.join(out, name), "PNG")
+        image = (
+            approved_icon.resize(size, Image.LANCZOS)
+            if name.startswith("icon")
+            else draw(size, pad_frac=PAD_FRAC)
+        )
+        image.save(os.path.join(out, name), "PNG")
 
     # Checked against the rules: size, transparent corners, a mark that fills.
     ok = True
