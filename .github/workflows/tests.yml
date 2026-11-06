@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Nothing here writes to the repo, publishes, or comments on a PR.
+permissions:
+  contents: read
+
 # Gitea reads .github/workflows too, so every job here is gated to github.com.
 
 jobs:
